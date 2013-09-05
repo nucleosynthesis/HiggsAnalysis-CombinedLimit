@@ -250,7 +250,8 @@ double Asymptotic::getCLs(RooRealVar &r, double rVal, bool getAlsoExpected, doub
   r.setVal(rVal);
   r.setConstant(true);
   if (hasFloatParams_) {
-      if (!minimD.improve(verbose-2) && picky_) return -999;
+      //if (!minimD.improve(verbose-2) && picky_) return -999;
+      minimD.minimize();
       fitFixD_.readFrom(*params_);
       if (verbose >= 2) fitFixD_.Print("V");
   }
@@ -264,7 +265,8 @@ double Asymptotic::getCLs(RooRealVar &r, double rVal, bool getAlsoExpected, doub
   r.setVal(rVal);
   r.setConstant(true);
   if (hasFloatParams_) {
-      if (!minimA.improve(verbose-2) && picky_) return -999;
+      //if (!minimA.improve(verbose-2) && picky_) return -999;
+      minimA.minimize();
       fitFixA_.readFrom(*params_);
       if (verbose >= 2) fitFixA_.Print("V");
   }

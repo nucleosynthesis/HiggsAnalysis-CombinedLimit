@@ -353,10 +353,12 @@ void CascadeMinimizer::multipleMinimize(const RooArgSet &reallyCleanParameters, 
     }
 
     // Assign best values ;
+    if (verbose>2) std::cout <<"Minimzed discrete indeces: " ;
     for (int id=0;id<numIndeces;id++) {
-	std::cout << bestIndeces[id];
+	if (verbose>2) std::cout << bestIndeces[id];
 	((RooCategory*)(pdfCategoryIndeces.at(id)))->setIndex(bestIndeces[id]);	
     }
+    if (verbose>2)std::cout << std::endl;
 
     params->assignValueOnly(snap);
 }
