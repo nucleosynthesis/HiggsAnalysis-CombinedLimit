@@ -312,7 +312,7 @@ std::vector<Double_t> ProfiledLikelihoodTestStatOpt::Evaluate(RooAbsData& data, 
     double initialR = rVals.back();
 
     // Perform unconstrained minimization (denominator)
-    r->setMin(0); if (initialR == 0 || (oneSided_ != oneSidedDef)) r->removeMax(); else r->setMax(1.1*initialR); 
+    r->setMin(0); if (initialR == 0 || (oneSided_ != oneSidedDef)) r->setMax(1e28)/*r->removeMax()*/; else r->setMax(1.1*initialR); 
     r->setVal(initialR == 0 ? 0.5 : 0.5*initialR); //best guess
     r->setConstant(false);
     DBG(DBG_PLTestStat_pars, (std::cout << "r In: ")) DBG(DBG_PLTestStat_pars, (rIn->Print(""))) DBG(DBG_PLTestStat_pars, std::cout << std::endl)

@@ -460,7 +460,8 @@ float Asymptotic::findExpectedLimitFromCrossing(RooAbsReal &nll, RooRealVar *r, 
                 bool ok = true;
                 { 
                     CloseCoutSentry sentry2(verbose < 3);
-                    ok = minim2.improve(verbose-2);
+                    //ok = minim2.improve(verbose-2);
+                    ok = minim2.minimize(verbose-2);
                 }
                 if (!ok && picky_) break; else minosStat = 0;
                 double here = nll.getVal();
@@ -483,7 +484,8 @@ float Asymptotic::findExpectedLimitFromCrossing(RooAbsReal &nll, RooRealVar *r, 
                 bool ok = true;
                 { 
                     CloseCoutSentry sentry2(verbose < 3);
-                    ok = minim2.improve(verbose-2);
+                    //ok = minim2.improve(verbose-2);
+                    ok = minim2.minimize(verbose-2);
                 }
                 if (!ok && picky_) break; else minosStat = 0;
                 double here = nll.getVal();
@@ -538,7 +540,8 @@ float Asymptotic::findExpectedLimitFromCrossing(RooAbsReal &nll, RooRealVar *r, 
                     if (verbose > 1) printf("At %s = %f:\tdelta(nll unprof) = %.5f\t                         \tkappa=%.5f\n", r->GetName(), r_1, nll_1-nll0, kappa);
                     { 
                         CloseCoutSentry sentry2(verbose < 3);
-                        bool ok = minim2.improve(verbose-2);
+                        //bool ok = minim2.improve(verbose-2);
+                        bool ok = minim2.minimize(verbose-2);
                         if (!ok && picky_) return std::numeric_limits<float>::quiet_NaN();
                     }
                     double nll_1_prof = nll.getVal();
@@ -581,7 +584,8 @@ float Asymptotic::findExpectedLimitFromCrossing(RooAbsReal &nll, RooRealVar *r, 
                bool ok = true;
                { 
                    CloseCoutSentry sentry2(verbose < 3);
-                   ok = minim2.improve(verbose-2);
+                   //ok = minim2.improve(verbose-2);
+                   ok = minim2.minimize(verbose-2);
                }
                if (!ok && picky_) return std::numeric_limits<float>::quiet_NaN();
                double nll_prof = nll.getVal();
