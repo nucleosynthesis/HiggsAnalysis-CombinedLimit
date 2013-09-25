@@ -22,6 +22,8 @@
 
 using namespace RooStats;
 
+SILLY_TEST
+
 MultiDimFit::Algo MultiDimFit::algo_ = None;
 MultiDimFit::GridType MultiDimFit::gridType_ = G1x1;
 std::vector<std::string>  MultiDimFit::poi_;
