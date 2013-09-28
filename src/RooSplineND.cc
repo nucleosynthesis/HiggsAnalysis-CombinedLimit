@@ -1,0 +1,203 @@
+#include "../interface/RooSplineND.h"
+/*
+Use of radial basis functions for interpolation 
+between points in multidimensional space.
+
+Produces N ->1 function from TTree
+*/
+
+
+RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, TTree *tree) :
+  RooAbsReal(name,title),
+  vars_("vars","Variables", this)
+{
+  ndim_ = vars.getSize();
+  M_    = tree->GetEntries();
+
+  // Interface is from ROOT TTree. Assume that each variable in the vars 
+  // corresponds to a (double) branch in the tree
+  std::map<int,double> b_map;
+
+  RooAbsReal *rIt;	
+  TIterator *iter = vars.createIterator(); int it_c=0;
+  while( (rIt = (RooAbsReal*) iter->Next()) ){ 
+    vars_.add(*rIt);
+    std::vector<double >tmpv(M_,0); 
+    v_map.insert(std::pair<int, std::vector<double> >(it_c,tmpv));
+    b_map.insert(std::pair<int, double >(it_c,0));
+    r_map.insert(std::pair<int, std::pair<double,double> >(it_c,std::pair<double,double>(-1.e6,1e6))); 
+    tree->SetBranchAddress(rIt->GetName(),&b_map[it_c]);
+    it_c++;
+  }
+  // Assume the function val (yi) branch is f
+  double F;
+  tree->SetBranchAddress("f",&F);
+  std::vector<double> F_vec;
+
+  // Run through tree and store points 
+  for (int i=0;i<M_;i++){
+    tree->GetEntry(i);
+    for (int k=0;k<ndim_;k++){
+      double cval = b_map[k];
+      if (cval < r_map[k].first) r_map[k].first=cval;
+      if (cval > r_map[k].second) r_map[k].second=cval;
+      v_map[k][i] = cval;
+    }
+    F_vec.push_back(F);
+  }
+
+  std::cout << "RooSplineND -- Num Dimensions == " << ndim_ <<std::endl;
+  std::cout << "RooSplineND -- Num Samples    == " << M_ << std::endl;
+  //eps_  = 2*1./M_; // This is a parameter which should be configurable !
+  eps_=0.5;
+  // Init and solve for weights
+  calculateWeights(F_vec); 	
+}
+
+//_____________________________________________________________________________
+// Copy Constructor
+RooSplineND::RooSplineND(const RooSplineND& other, const char *name) :
+ RooAbsReal(other, name),vars_("vars",this,RooListProxy())
+{
+  ndim_ = other.ndim_;
+  M_    = other.M_;
+  eps_  = other.eps_;
+
+  // STL copy constructors
+  w_    = other.w_;
+  v_map = other.v_map; 
+
+}
+//_____________________________________________________________________________
+// Clone Constructor
+RooSplineND::RooSplineND(const char *name, const char *title, const RooListProxy &vars, 
+ int ndim, int M, double eps, std::vector<double> &w, std::map<int,std::vector<double> > &map) :
+ RooAbsReal(name, title),vars_("vars",this,RooListProxy()) 
+{
+
+  RooAbsReal *rIt;	
+  TIterator *iter = vars.createIterator();
+  while( (rIt = (RooAbsReal*) iter->Next()) ){ 
+    vars_.add(*rIt);
+  }
+
+  ndim_ = ndim;
+  M_    = M;
+  eps_  = eps;
+
+  w_    = w;
+  v_map = map; 
+  
+}
+
+//_____________________________________________________________________________
+TObject *RooSplineND::clone(const char *newname) const 
+{
+    return new RooSplineND(newname, this->GetTitle(), 
+	vars_,ndim_,M_,eps_,w_,v_map);
+}
+//_____________________________________________________________________________
+RooSplineND::~RooSplineND() 
+{
+}
+//_____________________________________________________________________________
+TGraph * RooSplineND::getGraph(const char *xvar, double step){
+
+  TGraph *gr = new TGraph();
+  gr->SetLineWidth(2);
+  RooRealVar* v = (RooRealVar*) vars_.find(xvar);
+  double vorig = v->getVal();
+  int cp=0;
+
+  for (double xv=v->getMin();xv<=v->getMax();xv+=step){
+    v->setVal(xv);
+    gr->SetPoint(cp,xv,evaluate());
+    cp++;
+  }
+
+  v->setVal(vorig);
+  return gr;
+}
+//_____________________________________________________________________________
+void RooSplineND::calculateWeights(std::vector<double> &f){
+
+  // Solve system of Linear equations for weights vector 
+  TMatrixTSym<float> fMatrix(M_);
+  //TMatrixF fMatrix(M_,M_);
+ 
+  // Fill the Matrix
+  for (int i=0;i<M_;i++){
+    fMatrix(i,i)=1.;
+    for (int j=i+1;j<M_;j++){
+        double d2  = getDistSquare(i,j);
+	double rad = radialFunc(d2,eps_);
+	//std::cout << rad <<std::endl;
+        fMatrix(i,j) = (float) rad;
+	fMatrix(j,i) = (float) rad; // it is symmetric	
+    }
+  }
+
+  std::cout << "RooSplineND -- Solving for Weights" << std::endl;
+
+  // Invert (not sure how stable this is though!)
+  fMatrix.Invert();
+  std::cout << "RooSplineND -- ........ Done" << std::endl;
+
+  // Store weights
+  for (int i=0;i<M_;i++){
+    double wi = 0.;
+    for (int j=0;j<M_;j++){
+  //    std::cout << "i,j " << i << ", " << j << ", " << fMatrix(i,j) <<std::endl;
+      wi+=fMatrix(i,j)*f[j];
+    }
+    //std::cout << "Weights (calc) = " << i << " " << wi <<std::endl;
+    w_.push_back(wi);
+  }
+}
+//_____________________________________________________________________________
+double RooSplineND::getDistSquare(int i, int j){
+  double D = 0.; 
+  for (int k=0;k<ndim_;k++){
+    double v_i = v_map[k][i];
+    double v_j = v_map[k][j];
+    double dk = (v_i-v_j);
+    D += dk*dk;
+  }
+  return D; // only ever use square of distance!
+}
+//_____________________________________________________________________________
+double RooSplineND::getDistFromSquare(int i) const{
+  // Read parameters distance from point i in the sample
+  double D = 0.; 
+  for (int k=0;k<ndim_;k++){
+    double v_i = v_map[k][i];
+    RooAbsReal *v = (RooAbsReal*)vars_.at(k);
+    double v_j = v->getVal();
+    double dk = (v_i-v_j);
+    D += dk*dk;
+  }
+  return D; // only ever use square of distance!
+  
+}
+//_____________________________________________________________________________
+double RooSplineND::radialFunc(double d2, double eps) const{
+  double expo = (d2/(eps*eps));
+  double retval = TMath::Exp(-1*expo);
+  if (retval < 1e-3) retval=0.;
+  return retval;
+}
+//_____________________________________________________________________________
+Double_t RooSplineND::evaluate() const {
+ double ret = 0;
+ 
+ for (int i=0;i<M_;i++){
+   //std::cout << "Weights (eval) = " << i << " " << w_[i] <<std::endl;
+   //std::cout << "EVAL == "<< i << " " << w_[i] << " " << getDistFromSquare(i) << std::endl;
+   if (w_[i]==0) continue;
+   ret+=(w_[i]*radialFunc(getDistFromSquare(i),eps_));
+ }
+ return ret;
+}
+//_____________________________________________________________________________
+
+ClassImp(RooSplineND)
