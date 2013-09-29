@@ -56,6 +56,7 @@ class RooSplineND : public RooAbsReal {
 	int ndim_;
 	int M_;
 	double eps_;
+  	double axis_pts_;
 
 	void calculateWeights(std::vector<double> &);
 	double getDistSquare(int i, int j);

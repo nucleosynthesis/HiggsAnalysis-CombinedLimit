@@ -25,7 +25,7 @@ RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, 
     std::vector<double >tmpv(M_,0); 
     v_map.insert(std::pair<int, std::vector<double> >(it_c,tmpv));
     b_map.insert(std::pair<int, double >(it_c,0));
-    r_map.insert(std::pair<int, std::pair<double,double> >(it_c,std::pair<double,double>(-1.e6,1e6))); 
+    r_map.insert(std::pair<int, std::pair<double,double> >(it_c,std::pair<double,double>(1.e6,-1e6))); 
     tree->SetBranchAddress(rIt->GetName(),&b_map[it_c]);
     it_c++;
   }
@@ -49,7 +49,16 @@ RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, 
   std::cout << "RooSplineND -- Num Dimensions == " << ndim_ <<std::endl;
   std::cout << "RooSplineND -- Num Samples    == " << M_ << std::endl;
   //eps_  = 2*1./M_; // This is a parameter which should be configurable !
-  eps_=0.5;
+  //eps_=0.5;
+  
+  axis_pts_ = TMath::Power(M_,1./ndim_);
+  //eps_ = 0.1*axis_pts_;
+  // distances between neighboruing points are ~ 1
+  // hence should define an eps based on that. 
+  // Best guess for width of Gaussian is to use 2 neighbours, ie eps = 2
+  eps_= 2.;
+  std::cout << "NPTS_AXIS == " << axis_pts_<<std::endl;
+  std::cout << "EPS == " << eps_<<std::endl;
   // Init and solve for weights
   calculateWeights(F_vec); 	
 }
@@ -62,6 +71,7 @@ RooSplineND::RooSplineND(const RooSplineND& other, const char *name) :
   ndim_ = other.ndim_;
   M_    = other.M_;
   eps_  = other.eps_;
+  axis_pts_ = other.axis_pts_;
 
   // STL copy constructors
   w_    = other.w_;
@@ -84,6 +94,7 @@ RooSplineND::RooSplineND(const char *name, const char *title, const RooListProxy
   ndim_ = ndim;
   M_    = M;
   eps_  = eps;
+  axis_pts_ = TMath::Power(M_,1./ndim_);
 
   w_    = w;
   v_map = map; 
@@ -122,7 +133,7 @@ TGraph * RooSplineND::getGraph(const char *xvar, double step){
 void RooSplineND::calculateWeights(std::vector<double> &f){
 
   // Solve system of Linear equations for weights vector 
-  TMatrixTSym<float> fMatrix(M_);
+  TMatrixTSym<double> fMatrix(M_);
   //TMatrixF fMatrix(M_,M_);
  
   // Fill the Matrix
@@ -160,7 +171,8 @@ double RooSplineND::getDistSquare(int i, int j){
   for (int k=0;k<ndim_;k++){
     double v_i = v_map[k][i];
     double v_j = v_map[k][j];
-    double dk = (v_i-v_j);
+    double dk = axis_pts_*(v_i-v_j)/(r_map[k].second-r_map[k].first);
+    //std::cout << "dimension - " << k << ", Values at pts " << i <<"," << j << " are "<<v_i<< ","<<v_j<< " Distance " <<dk<<std::endl;
     D += dk*dk;
   }
   return D; // only ever use square of distance!
@@ -173,7 +185,7 @@ double RooSplineND::getDistFromSquare(int i) const{
     double v_i = v_map[k][i];
     RooAbsReal *v = (RooAbsReal*)vars_.at(k);
     double v_j = v->getVal();
-    double dk = (v_i-v_j);
+    double dk = axis_pts_*(v_i-v_j)/(r_map[k].second-r_map[k].first);
     D += dk*dk;
   }
   return D; // only ever use square of distance!
