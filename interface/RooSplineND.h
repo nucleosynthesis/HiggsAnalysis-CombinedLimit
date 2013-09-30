@@ -10,6 +10,7 @@
 #include "TMatrixF.h"
 #include "TMatrixD.h"
 #include "TDecompSVD.h"
+#include "TDecompBK.h"
 #include "TVectorD.h"
 #include "TDecompLU.h"
 #include "TTree.h"

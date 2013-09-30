@@ -149,12 +149,22 @@ void RooSplineND::calculateWeights(std::vector<double> &f){
   }
 
   std::cout << "RooSplineND -- Solving for Weights" << std::endl;
+  TVectorD weights(M_);
+  for (int i=0;i<M_;i++){
+    weights[i]=f[i];
+  }
 
+  TDecompBK decomp(fMatrix);
+  //decomp.Print();
   // Invert (not sure how stable this is though!)
-  fMatrix.Invert();
+  decomp.Solve(weights); // Solution now in weights
+  //fMatrix.Invert();
   std::cout << "RooSplineND -- ........ Done" << std::endl;
-
+  for (int i=0;i<M_;i++){
+    w_.push_back(weights[i]);
+  }
   // Store weights
+  /*
   for (int i=0;i<M_;i++){
     double wi = 0.;
     for (int j=0;j<M_;j++){
@@ -164,6 +174,7 @@ void RooSplineND::calculateWeights(std::vector<double> &f){
     //std::cout << "Weights (calc) = " << i << " " << wi <<std::endl;
     w_.push_back(wi);
   }
+  */
 }
 //_____________________________________________________________________________
 double RooSplineND::getDistSquare(int i, int j){
@@ -195,7 +206,7 @@ double RooSplineND::getDistFromSquare(int i) const{
 double RooSplineND::radialFunc(double d2, double eps) const{
   double expo = (d2/(eps*eps));
   double retval = TMath::Exp(-1*expo);
-  if (retval < 1e-3) retval=0.;
+//  if (retval < 1e-3) retval=0.;
   return retval;
 }
 //_____________________________________________________________________________
