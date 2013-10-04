@@ -76,12 +76,13 @@ RooSplineND::RooSplineND(const RooSplineND& other, const char *name) :
   // STL copy constructors
   w_    = other.w_;
   v_map = other.v_map; 
+  r_map = other.r_map;
 
 }
 //_____________________________________________________________________________
 // Clone Constructor
 RooSplineND::RooSplineND(const char *name, const char *title, const RooListProxy &vars, 
- int ndim, int M, double eps, std::vector<double> &w, std::map<int,std::vector<double> > &map) :
+ int ndim, int M, double eps, std::vector<double> &w, std::map<int,std::vector<double> > &map, std::map<int,std::pair<double,double> > &rmap) :
  RooAbsReal(name, title),vars_("vars",this,RooListProxy()) 
 {
 
@@ -97,7 +98,14 @@ RooSplineND::RooSplineND(const char *name, const char *title, const RooListProxy
   axis_pts_ = TMath::Power(M_,1./ndim_);
 
   w_    = w;
-  v_map = map; 
+  v_map = map;
+  r_map = rmap;
+  /*
+  std::map<int,std::vector<double> >::const_iterator vit = map.begin();
+  for (;vit!=map.end();vit++){
+   v_map.insert(*vit);
+  }
+  */
   
 }
 
@@ -105,7 +113,7 @@ RooSplineND::RooSplineND(const char *name, const char *title, const RooListProxy
 TObject *RooSplineND::clone(const char *newname) const 
 {
     return new RooSplineND(newname, this->GetTitle(), 
-	vars_,ndim_,M_,eps_,w_,v_map);
+	vars_,ndim_,M_,eps_,w_,v_map,r_map);
 }
 //_____________________________________________________________________________
 RooSplineND::~RooSplineND() 
@@ -206,16 +214,16 @@ double RooSplineND::getDistFromSquare(int i) const{
 double RooSplineND::radialFunc(double d2, double eps) const{
   double expo = (d2/(eps*eps));
   double retval = TMath::Exp(-1*expo);
+  //double retval = (eps*eps*eps*eps)/(d2*d2);
 //  if (retval < 1e-3) retval=0.;
   return retval;
 }
 //_____________________________________________________________________________
 Double_t RooSplineND::evaluate() const {
  double ret = 0;
- 
  for (int i=0;i<M_;i++){
-   //std::cout << "Weights (eval) = " << i << " " << w_[i] <<std::endl;
-   //std::cout << "EVAL == "<< i << " " << w_[i] << " " << getDistFromSquare(i) << std::endl;
+ //  std::cout << "Weights (eval) = " << i << " " << w_[i] <<std::endl;
+ //  std::cout << "EVAL == "<< i << " " << w_[i] << " " << getDistFromSquare(i) << std::endl;
    if (w_[i]==0) continue;
    ret+=(w_[i]*radialFunc(getDistFromSquare(i),eps_));
  }

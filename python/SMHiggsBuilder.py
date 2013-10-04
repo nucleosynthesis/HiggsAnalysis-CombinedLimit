@@ -23,6 +23,7 @@ class SMHiggsBuilder:
             makeXS("WH", energy); makeXS("ZH", energy);
             self.modelBuilder.factory_('sum::SM_XS_VH_'+energy+'(SM_XS_WH_'+energy+',SM_XS_ZH_'+energy+')')
     def makeTotalWidth(self):
+	print "Building total width from ",  os.path.join(self.brpath,"BR.txt")
         self.textToSpline("SM_GammaTot", os.path.join(self.brpath,"BR.txt"), ycol=6);
     def makeBR(self,decay):
         if decay == "hww": self.textToSpline("SM_BR_hww", os.path.join(self.brpath, "BR.txt"), ycol=4);
@@ -135,8 +136,18 @@ class SMHiggsBuilder:
             x.append(float(cols[xcol]))
             y.append(float(cols[ycol]))
         xv = self.modelBuilder.out.var(xvar)
+	print "Making Roo1DSpline with ",name, "file %s, x=%d, y=%d" % (filename,xcol,ycol), xv, len(x), array('d', x), array('d', y), algo
         spline = ROOT.RooSpline1D(name, "file %s, x=%d, y=%d" % (filename,xcol,ycol), xv, len(x), array('d', x), array('d', y), algo)
         self.modelBuilder.out._import(spline)
+    
+    def ttreeToSpline(self,name,tree,params):
+	
+	args = ROOT.RooArgList();
+	for par in params: 
+		rpar = self.modelBuilder.out.var(par)
+		args.add(rpar)
+        spline = ROOT.RooSplineND(name,name,args,tree)
+	self.modelBuilder.out._import(spline)
 
 #if __name__ == "__main__":
 #   sm = SMHiggsBuilder()

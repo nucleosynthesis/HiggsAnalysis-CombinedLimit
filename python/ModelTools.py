@@ -36,6 +36,7 @@ class ModelBuilderBase():
         if (len(X) > 1000):
             print "Executing factory with a string of length ",len(X)," > 1000, could trigger a bug: ",X
         ret = self.out.factory(X);
+	print "Factory problems2, ",X, ret
         if ret: 
             self.out.dont_delete.append(ret)
             return ret
