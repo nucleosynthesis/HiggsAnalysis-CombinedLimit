@@ -4,10 +4,13 @@ Use of radial basis functions for interpolation
 between points in multidimensional space.
 
 Produces N ->1 function from TTree
+
+Branch to be considered as F(x) should be passed in fName, 
+otherwise it is assumed to be called, "f"
 */
 
 
-RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, TTree *tree) :
+RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, TTree *tree, const char *fName, double eps) :
   RooAbsReal(name,title),
   vars_("vars","Variables", this)
 {
@@ -31,19 +34,22 @@ RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, 
   }
   // Assume the function val (yi) branch is f
   double F;
-  tree->SetBranchAddress("f",&F);
+  tree->SetBranchAddress(fName,&F);
   std::vector<double> F_vec;
 
   // Run through tree and store points 
   for (int i=0;i<M_;i++){
     tree->GetEntry(i);
+    //std::cout << "Adding point, " << i << " ";
     for (int k=0;k<ndim_;k++){
       double cval = b_map[k];
       if (cval < r_map[k].first) r_map[k].first=cval;
       if (cval > r_map[k].second) r_map[k].second=cval;
+      std::cout << cval << " ";
       v_map[k][i] = cval;
     }
     F_vec.push_back(F);
+    std::cout << "  func = " << F  <<std::endl;
   }
 
   std::cout << "RooSplineND -- Num Dimensions == " << ndim_ <<std::endl;
@@ -55,8 +61,9 @@ RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, 
   //eps_ = 0.1*axis_pts_;
   // distances between neighboruing points are ~ 1
   // hence should define an eps based on that. 
-  // Best guess for width of Gaussian is to use 2 neighbours, ie eps = 2
-  eps_= 2.;
+  // Best guess for width of Gaussian is to use 1.5 neighbours on each side, ie eps = 3
+  // recommendation is 3
+  eps_= eps;
   std::cout << "NPTS_AXIS == " << axis_pts_<<std::endl;
   std::cout << "EPS == " << eps_<<std::endl;
   // Init and solve for weights
@@ -72,6 +79,12 @@ RooSplineND::RooSplineND(const RooSplineND& other, const char *name) :
   M_    = other.M_;
   eps_  = other.eps_;
   axis_pts_ = other.axis_pts_;
+
+  RooAbsReal *rIt;	
+  TIterator *iter = other.vars_.createIterator();
+  while( (rIt = (RooAbsReal*) iter->Next()) ){ 
+    vars_.add(*rIt);
+  }
 
   // STL copy constructors
   w_    = other.w_;
@@ -125,6 +138,7 @@ TGraph * RooSplineND::getGraph(const char *xvar, double step){
   TGraph *gr = new TGraph();
   gr->SetLineWidth(2);
   RooRealVar* v = (RooRealVar*) vars_.find(xvar);
+  gr->SetTitle(v->GetTitle());
   double vorig = v->getVal();
   int cp=0;
 
@@ -150,16 +164,16 @@ void RooSplineND::calculateWeights(std::vector<double> &f){
     for (int j=i+1;j<M_;j++){
         double d2  = getDistSquare(i,j);
 	double rad = radialFunc(d2,eps_);
-	//std::cout << rad <<std::endl;
-        fMatrix(i,j) = (float) rad;
-	fMatrix(j,i) = (float) rad; // it is symmetric	
+	//std::cout << "Distance between " << i << " and " << j << " = " << TMath::Sqrt(d2) <<std::endl;
+        fMatrix(i,j) = (double) rad;
+	fMatrix(j,i) = (double) rad; // it is symmetric	
     }
   }
 
   std::cout << "RooSplineND -- Solving for Weights" << std::endl;
   TVectorD weights(M_);
   for (int i=0;i<M_;i++){
-    weights[i]=f[i];
+    weights[i]=(double)f[i];
   }
 
   TDecompBK decomp(fMatrix);
@@ -169,7 +183,7 @@ void RooSplineND::calculateWeights(std::vector<double> &f){
   //fMatrix.Invert();
   std::cout << "RooSplineND -- ........ Done" << std::endl;
   for (int i=0;i<M_;i++){
-    w_.push_back(weights[i]);
+    w_.push_back((double)weights[i]);
   }
   // Store weights
   /*

@@ -35,7 +35,7 @@ class RooSplineND : public RooAbsReal {
 
    public:
       RooSplineND() : ndim_(0),M_(0),eps_(1.) {}
-      RooSplineND(const char *name, const char *title, RooArgList &vars, TTree *tree ) ;
+      RooSplineND(const char *name, const char *title, RooArgList &vars, TTree *tree, const char* fName="f", double eps=1. ) ;
       RooSplineND(const RooSplineND& other, const char *name) ; 
       RooSplineND(const char *name, const char *title, const RooListProxy &vars, int ndim, int M, double eps, std::vector<double> &w, std::map<int,std::vector<double> > &map, std::map<int,std::pair<double,double> > & ) ;
       ~RooSplineND() ;
