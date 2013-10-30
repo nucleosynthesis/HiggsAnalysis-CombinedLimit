@@ -88,7 +88,20 @@ class ModelBuilder(ModelBuilderBase):
         if len(self.DC.systs) == 0: return
         self.doComment(" ----- nuisances -----")
         globalobs = []
-	for cpar in self.DC.discretes: self.addDiscrete(cpar) 
+        # Prepare a dictionary of which group a certain nuisance belongs to
+        groupsFor = {}
+        existingNuisanceNames = tuple(syst[0] for syst in self.DC.systs)
+        for groupName,nuisanceNames in self.DC.groups.iteritems():
+            for nuisanceName in nuisanceNames:
+                if nuisanceName not in existingNuisanceNames:
+                    print 'Group "%(groupName)s" references nuisance "%(nuisanceName)s" but it does not exist. You should check your datacards.' % locals()
+                    continue
+                if nuisanceName in groupsFor:
+                    groupsFor[nuisanceName].append(groupName)
+                else:
+                    groupsFor[nuisanceName] = [ groupName ]
+        #print groupsFor
+        for cpar in self.DC.discretes: self.addDiscrete(cpar)
         for (n,nofloat,pdf,args,errline) in self.DC.systs: 
             if pdf == "lnN" or pdf.startswith("shape"):
                 r = "-4,4" if pdf == "shape" else "-7,7"
@@ -205,6 +218,13 @@ class ModelBuilder(ModelBuilderBase):
             else: raise RuntimeError, "Unsupported pdf %s" % pdf
             if nofloat: 
               self.out.var("%s" % n).setAttribute("globalConstrained",True)
+            # set an attribute related to the group(s) this nuisance belongs to
+            if n in groupsFor:
+                groupNames = groupsFor[n]
+                print '"%(n)s" is assigned to groups %(groupNames)s' % locals()
+                for groupName in groupNames:
+                    self.out.var(n).setAttribute('group_'+groupName,True)
+            #self.out.var(n).Print('V')
         if self.options.bin:
             nuisPdfs = ROOT.RooArgList()
             nuisVars = ROOT.RooArgSet()
