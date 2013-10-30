@@ -38,6 +38,7 @@ def parseCard(file, options):
         raise RuntimeError, "You should pass as argument to parseCards a file object, stream or a list of lines, not a string"
     ret = Datacard()
     ret.discretes=[]
+    ret.groups={}
     #
     nbins      = -1; 
     nprocesses = -1; 
@@ -159,6 +160,12 @@ def parseCard(file, options):
             elif pdf=="discrete":
                 args = f[2:]
                 ret.discretes.append(lsyst)
+                continue
+            elif pdf=="group":
+                # This is not really a pdf type, but a way to be able to name groups of nuisances together
+                groupName = lsyst
+                groupNuisances = numbers
+                ret.groups[groupName]= list( set(groupNuisances) )
                 continue
             else:
                 raise RuntimeError, "Unsupported pdf %s" % pdf

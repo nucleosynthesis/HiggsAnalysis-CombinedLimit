@@ -33,6 +33,7 @@ obsline = []; obskeyline = [] ;
 keyline = []; expline = []; systlines = {}
 signals = []; backgrounds = []; shapeLines = []
 paramSysts = {}; flatParamNuisances = {}
+groups = {}
 cmax = 5 # column width
 if not args:
     raise RuntimeError, "No input datacards specified."
@@ -67,7 +68,7 @@ for ich,fname in enumerate(args):
         systeffect = {}
         if pdf == "param":
             if paramSysts.has_key(lsyst):
-               if paramSysts[lsyst] != pdfargs: raise RuntimeError, "Parameter uncerainty %s mismatch between cards." % lsyst
+               if paramSysts[lsyst] != pdfargs: raise RuntimeError, "Parameter uncertainty %s mismatch between cards." % lsyst
             else:
                 paramSysts[lsyst] = pdfargs
             continue
@@ -134,7 +135,13 @@ for ich,fname in enumerate(args):
         for b in DC.bins:
             bout = label if singlebin else label+b
             if isVetoed(bout,options.channelVetos): continue
-            obsline += [str(DC.obs[b])]; 
+            obsline += [str(DC.obs[b])];
+    #get the groups - keep nuisances in a set so that they are never repetitions
+    for groupName,nuisanceNames in DC.groups.iteritems():
+        if groupName in groups:
+            groups[groupName].update(set(nuisanceNames))
+        else:
+            groups[groupName] = set(nuisanceNames)
 
 bins = []
 for (b,p,s) in keyline:
@@ -204,3 +211,7 @@ for (pname, pargs) in paramSysts.items():
 
 for pname in flatParamNuisances.iterkeys(): 
     print "%-12s  flatParam" % pname
+
+for groupName,nuisanceNames in groups.iteritems():
+    nuisances = ' '.join(nuisanceNames)
+    print '%(groupName)s group %(nuisances)s' % locals()
