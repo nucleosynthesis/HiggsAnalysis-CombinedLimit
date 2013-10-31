@@ -94,12 +94,13 @@ class ModelBuilder(ModelBuilderBase):
         for groupName,nuisanceNames in self.DC.groups.iteritems():
             for nuisanceName in nuisanceNames:
                 if nuisanceName not in existingNuisanceNames:
-                    print 'Group "%(groupName)s" references nuisance "%(nuisanceName)s" but it does not exist. You should check your datacards.' % locals()
+                    print 'Group "%(groupName)s" references nuisance "%(nuisanceName)s" but it does not exist so I will skip it. You should check your datacards.' % locals()
                     continue
                 if nuisanceName in groupsFor:
                     groupsFor[nuisanceName].append(groupName)
                 else:
                     groupsFor[nuisanceName] = [ groupName ]
+        print self.DC.groups
         #print groupsFor
         for cpar in self.DC.discretes: self.addDiscrete(cpar)
         for (n,nofloat,pdf,args,errline) in self.DC.systs: 
