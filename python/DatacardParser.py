@@ -165,7 +165,11 @@ def parseCard(file, options):
                 # This is not really a pdf type, but a way to be able to name groups of nuisances together
                 groupName = lsyst
                 groupNuisances = numbers
-                ret.groups[groupName]= list( set(groupNuisances) )
+                if groupName in ret.groups:
+                    print 'Found another line defining group "%(groupName)s". Will merge with previous, but you should check your cards.'
+                    ret.groups[groupName].update( set(groupNuisances) )
+                else:
+                    ret.groups[groupName] = set(groupNuisances)
                 continue
             else:
                 raise RuntimeError, "Unsupported pdf %s" % pdf
