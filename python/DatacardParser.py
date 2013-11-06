@@ -166,7 +166,7 @@ def parseCard(file, options):
                 groupName = lsyst
                 groupNuisances = numbers
                 if groupName in ret.groups:
-                    print 'Found another line defining group "%(groupName)s". Will merge with previous, but you should check your cards.'
+                    print 'Found another line defining group "%(groupName)s". Will merge with previous, but you should check your cards.' % locals()
                     ret.groups[groupName].update( set(groupNuisances) )
                 else:
                     ret.groups[groupName] = set(groupNuisances)
