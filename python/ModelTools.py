@@ -100,7 +100,7 @@ class ModelBuilder(ModelBuilderBase):
                     groupsFor[nuisanceName].append(groupName)
                 else:
                     groupsFor[nuisanceName] = [ groupName ]
-        print self.DC.groups
+        #print self.DC.groups
         #print groupsFor
         for cpar in self.DC.discretes: self.addDiscrete(cpar)
         for (n,nofloat,pdf,args,errline) in self.DC.systs: 
