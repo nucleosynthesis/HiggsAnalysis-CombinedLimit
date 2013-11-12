@@ -33,6 +33,10 @@
 #include <Math/ProbFunc.h>
 #include <RooStats/RooStatsUtils.h>
 
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/iter_find.hpp>
+
 using namespace RooStats;
 
 std::string FitterAlgoBase::minimizerAlgo_ = "Minuit2";
@@ -51,6 +55,7 @@ bool        FitterAlgoBase::keepFailures_ = false;
 bool        FitterAlgoBase::protectUnbinnedChannels_ = false;
 float       FitterAlgoBase::nllValue_ = std::numeric_limits<float>::quiet_NaN();
 FitterAlgoBase::ProfilingMode FitterAlgoBase::profileMode_ = ProfileAll;
+std::vector<std::pair<std::string, FitterAlgoBase::FloatingMode> > FitterAlgoBase::profileDetails_ = std::vector<std::pair<std::string, FloatingMode> >();
 
 FitterAlgoBase::FitterAlgoBase(const char *title) :
     LimitAlgo(title)
@@ -68,6 +73,7 @@ FitterAlgoBase::FitterAlgoBase(const char *title) :
         ("minimizerStrategyForMinos",  boost::program_options::value<int>(&minimizerStrategyForMinos_)->default_value(minimizerStrategyForMinos_),      "Stragegy for minimizer for profiling in robust fits")
         ("minimizerToleranceForMinos",  boost::program_options::value<float>(&minimizerToleranceForMinos_)->default_value(minimizerToleranceForMinos_),      "Tolerance for minimizer for profiling in robust fits")
         ("profilingMode", boost::program_options::value<std::string>()->default_value("all"), "What to profile when computing uncertainties: all, none (at least for now).")
+        ("profilingDetails", boost::program_options::value<std::vector<std::string> >()->multitoken(), "Details on what to fix/float when computing uncertainties.")
         ("saveNLL",  "Save the negative log-likelihood at the minimum in the output tree (note: value is relative to the pre-fit state)")
         ("keepFailures",  "Save the results even if the fit is declared as failed (for NLL studies)")
         ("protectUnbinnedChannels", "Protect PDF from going negative in unbinned channels")
@@ -85,6 +91,108 @@ void FitterAlgoBase::applyOptionsBase(const boost::program_options::variables_ma
     else if (profileMode == "poi")           profileMode_ = ProfilePOI;
     else if (profileMode == "none")          profileMode_ = NoProfiling;
     else throw std::invalid_argument("option 'profilingMode' can only take as values 'all', 'none', 'poi' and 'unconstrained' (at least for now)\n");
+
+
+    if(vm.count("profilingDetails")){
+    	BOOST_FOREACH(std::string option, vm["profilingDetails"].as<std::vector<std::string> >() ){
+
+    		// Looking for strings of the form "name,mode"
+    	    std::list<std::string> tokens;
+    	    boost::iter_split(tokens, option, boost::first_finder(","));
+
+    	    if(tokens.size()!=2){
+    	    	// TODO: something of the form "name" could have a default behaviour of floating or fixing,
+    	    	// depending on profileMode (fix if default is float, float is default is fix)
+    	    	std::cout << "Please add an action to: \"" << option << "\"" << std::endl;
+    	    	continue;
+    	    }
+
+    	    if(tokens.front().size()==0){
+    	    	// found something like ",mode"
+    	    	std::cout << "Please name what you want the action to apply to in \"" << option << "\"" << std::endl;
+    	    	continue;
+    	    }
+
+    	    std::string triggerPattern(tokens.front());
+
+    	    FloatingMode floatingMode;
+    	    if(tokens.back()=="fix"){
+    	    	floatingMode = FixNuisance;
+    	    }else if(tokens.back()=="float"){
+    	    	floatingMode = FloatNuisance;
+    	    }else{
+    	    	std::cout << "I do not understand the action in \"" << tokens.back() << "\" in \"" << option << "\". I only know about \"fix\" or \"float\"." << std::endl;
+    	    	continue;
+    	    }
+
+    		profileDetails_.push_back( std::make_pair( triggerPattern, floatingMode ) );
+    	}
+
+    	std::cout << "Profiling/floating details:" << std::endl;
+    	typedef std::pair<std::string, FloatingMode> APair_t;
+    	BOOST_FOREACH( APair_t p, profileDetails_ ){
+    		// TODO: this needs some sort of human-understandable printout
+    		std::cout << "- " << p.first <<" will be " << p.second << std::endl;
+    	}
+
+
+    	std::vector<RooRealVar *> vs;
+
+    	RooRealVar *v1 = new RooRealVar("name","",0);
+    	v1->setAttribute("group_test");
+    	vs.push_back(v1);
+
+    	RooRealVar *v2 = new RooRealVar("foo","",0);
+    	v2->setAttribute("group_bar");
+    	vs.push_back(v2);
+
+    	RooRealVar *v3 = new RooRealVar("bar","",0);
+    	v3->setAttribute("group_foo");
+    	v3->setAttribute("group_baz");
+    	vs.push_back(v3);
+
+
+    	BOOST_FOREACH( RooRealVar *v, vs ){
+
+    		v->Print();
+        	BOOST_FOREACH( std::string attr, v->attributes() ){
+        		std::cout << " " << attr << std::endl;
+        	}
+
+    		//skeleton of the check (to be refactored)
+    		BOOST_FOREACH( APair_t p, profileDetails_ ){
+
+    			std::string pattern(p.first);
+    			FloatingMode mode = p.second;
+
+    			std::cout << "Testing pattern: " << pattern << std::endl;
+
+    			if( pattern == std::string(v->GetName()) ){
+    				std::cout << "Matched [" << pattern << ":" << mode << "] for [" << v->GetName() << "]" <<  std::endl;
+    				//apply action
+    				break;
+    			}
+
+    			std::string groupPattern("group_"+pattern);
+    			bool needBreak = false;
+    			BOOST_FOREACH( std::string attribute, v->attributes() ){
+    				if( attribute == groupPattern ){
+    					std::cout << "Matched [" << groupPattern << ":" << mode << "] for [" << v->GetName() << "]" <<  std::endl;
+    					//apply action
+    					needBreak=true;
+    					break;
+    				}
+    			}
+
+    			if(needBreak) break;
+
+    			std::cout << "Tried [" << pattern << "]: did not match nuisance with name [" << v->GetName() << "]" <<  std::endl;
+    		}
+    		//skeleton
+    	}
+
+
+    }
 }
 
 bool FitterAlgoBase::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::ModelConfig *mc_b, RooAbsData &data, double &limit, double &limitErr, const double *hint) { 
