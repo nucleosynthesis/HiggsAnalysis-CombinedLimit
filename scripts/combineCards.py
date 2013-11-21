@@ -214,4 +214,4 @@ for pname in flatParamNuisances.iterkeys():
 
 for groupName,nuisanceNames in groups.iteritems():
     nuisances = ' '.join(nuisanceNames)
-    print '%(groupName)s group %(nuisances)s' % locals()
+    print '%(groupName)s group = %(nuisances)s' % locals()

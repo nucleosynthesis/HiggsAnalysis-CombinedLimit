@@ -69,6 +69,14 @@ class ModelBuilder(ModelBuilderBase):
     def doModel(self):
         self.doObservables()
         self.physics.doParametersOfInterest()
+        
+        # set a group attribute on POI variables
+        poiIter = self.out.set('POI').createIterator()
+        poi = poiIter.Next()
+        while poi:
+            self.out.var(poi.GetName()).setAttribute('group_POI',True)
+            poi = poiIter.Next()
+
         self.physics.preProcessNuisances(self.DC.systs)
         self.doNuisances()
         self.doExpectedEvents()
@@ -77,10 +85,10 @@ class ModelBuilder(ModelBuilderBase):
         self.physics.done()
         if self.options.bin:
             self.doModelConfigs()
-            if self.options.verbose > 1: self.out.Print("V")
+            if self.options.verbose > 1: self.out.Print("tv")
             if self.options.verbose > 2: 
-                print "Wrote GraphVizTree of model_s to ",self.options.out+".dot"
                 self.out.pdf("model_s").graphVizTree(self.options.out+".dot", "\\n")
+                print "Wrote GraphVizTree of model_s to ",self.options.out+".dot"
     def doObservables(self):
         """create pdf_bin<X> and pdf_bin<X>_bonly for each bin"""
         raise RuntimeError, "Not implemented in ModelBuilder"
@@ -94,8 +102,7 @@ class ModelBuilder(ModelBuilderBase):
         for groupName,nuisanceNames in self.DC.groups.iteritems():
             for nuisanceName in nuisanceNames:
                 if nuisanceName not in existingNuisanceNames:
-                    print 'Group "%(groupName)s" references nuisance "%(nuisanceName)s" but it does not exist so I will skip it. You should check your datacards.' % locals()
-                    continue
+                    raise RuntimeError, 'Nuisance group "%(groupName)s" refers to nuisance "%(nuisanceName)s" but it does not exist. Perhaps you misspelled it.' % locals()
                 if nuisanceName in groupsFor:
                     groupsFor[nuisanceName].append(groupName)
                 else:
@@ -222,7 +229,8 @@ class ModelBuilder(ModelBuilderBase):
             # set an attribute related to the group(s) this nuisance belongs to
             if n in groupsFor:
                 groupNames = groupsFor[n]
-                print '"%(n)s" is assigned to groups %(groupNames)s' % locals()
+                if self.options.verbose > 1:
+                    print 'Nuisance "%(n)s" is assigned to the following nuisance groups: %(groupNames)s' % locals()
                 for groupName in groupNames:
                     self.out.var(n).setAttribute('group_'+groupName,True)
             #self.out.var(n).Print('V')

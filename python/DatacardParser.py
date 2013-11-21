@@ -165,11 +165,26 @@ def parseCard(file, options):
                 # This is not really a pdf type, but a way to be able to name groups of nuisances together
                 groupName = lsyst
                 groupNuisances = numbers
-                if groupName in ret.groups:
-                    print 'Found another line defining group "%(groupName)s". Will merge with previous, but you should check your cards.' % locals()
-                    ret.groups[groupName].update( set(groupNuisances) )
+
+                if not groupNuisances:
+                    raise RuntimeError, "Syntax error for group '%s': empty line after 'group'." % groupName
+
+                defToks = ('=','+=')
+                defTok = groupNuisances.pop(0)
+                if defTok not in defToks:
+                    raise RuntimeError, "Syntax error for group '%s': first thing after 'group' is not '[+]=' but '%s'." % (groupName,defTok)
+                
+                if groupName not in ret.groups:
+                    if defTok=='=':
+                        ret.groups[groupName] = set(groupNuisances)
+                    else:
+                        raise RuntimeError, "Cannot append to group '%s' as it was not yet defined." % groupName                                                                                                    
                 else:
-                    ret.groups[groupName] = set(groupNuisances)
+                    if defTok=='+=' :
+                        ret.groups[groupName].update( set(groupNuisances) )
+                    else:
+                        raise RuntimeError, "Will not redefine group '%s'. It previously contained '%s' and you now wanted it to contain '%s'." % (groupName,ret.groups[groupName],groupNuisances)                        
+
                 continue
             else:
                 raise RuntimeError, "Unsupported pdf %s" % pdf
