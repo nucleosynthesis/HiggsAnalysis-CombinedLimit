@@ -107,6 +107,12 @@ Double_t RooMultiPdf::evaluate() const{
 }
 
 //_____________________________________________________________________________
+Double_t  RooMultiPdf::getValV(const RooArgSet* nset) const{
+  RooAbsPdf *cPdf = ((RooAbsPdf*)c.at(x)); 
+  _oldIndex=x; 
+  return cPdf->getValV(nset);
+}
+//_____________________________________________________________________________
 Double_t  RooMultiPdf::getLogVal(const RooArgSet* nset) const{
 
   double logval=0;
