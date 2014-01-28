@@ -1,14 +1,4 @@
 #include "../interface/RooSplineND.h"
-/*
-Use of radial basis functions for interpolation 
-between points in multidimensional space.
-
-Produces N ->1 function from TTree
-
-Branch to be considered as F(x) should be passed in fName, 
-otherwise it is assumed to be called, "f"
-*/
-
 
 RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, TTree *tree, const char *fName, double eps) :
   RooAbsReal(name,title),
@@ -17,9 +7,9 @@ RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, 
   ndim_ = vars.getSize();
   M_    = tree->GetEntries();
 
-  // Interface is from ROOT TTree. Assume that each variable in the vars 
-  // corresponds to a (double) branch in the tree
-  std::map<int,double> b_map;
+  std::cout << "RooSplineND -- Num Dimensions == " << ndim_ <<std::endl;
+  std::cout << "RooSplineND -- Num Samples    == " << M_ << std::endl;
+  double *b_map = new double(ndim_);
 
   RooAbsReal *rIt;	
   TIterator *iter = vars.createIterator(); int it_c=0;
@@ -27,7 +17,6 @@ RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, 
     vars_.add(*rIt);
     std::vector<double >tmpv(M_,0); 
     v_map.insert(std::pair<int, std::vector<double> >(it_c,tmpv));
-    b_map.insert(std::pair<int, double >(it_c,0));
     r_map.insert(std::pair<int, std::pair<double,double> >(it_c,std::pair<double,double>(1.e6,-1e6))); 
     tree->SetBranchAddress(rIt->GetName(),&b_map[it_c]);
     it_c++;
@@ -40,34 +29,20 @@ RooSplineND::RooSplineND(const char *name, const char *title, RooArgList &vars, 
   // Run through tree and store points 
   for (int i=0;i<M_;i++){
     tree->GetEntry(i);
-    //std::cout << "Adding point, " << i << " ";
     for (int k=0;k<ndim_;k++){
       double cval = b_map[k];
       if (cval < r_map[k].first) r_map[k].first=cval;
       if (cval > r_map[k].second) r_map[k].second=cval;
-      std::cout << cval << " ";
       v_map[k][i] = cval;
     }
     F_vec.push_back(F);
-    std::cout << "  func = " << F  <<std::endl;
   }
 
-  std::cout << "RooSplineND -- Num Dimensions == " << ndim_ <<std::endl;
-  std::cout << "RooSplineND -- Num Samples    == " << M_ << std::endl;
-  //eps_  = 2*1./M_; // This is a parameter which should be configurable !
-  //eps_=0.5;
-  
+  // Try to re-scale axis to even out dimensions.
   axis_pts_ = TMath::Power(M_,1./ndim_);
-  //eps_ = 0.1*axis_pts_;
-  // distances between neighboruing points are ~ 1
-  // hence should define an eps based on that. 
-  // Best guess for width of Gaussian is to use 1.5 neighbours on each side, ie eps = 3
-  // recommendation is 3
   eps_= eps;
-  std::cout << "NPTS_AXIS == " << axis_pts_<<std::endl;
-  std::cout << "EPS == " << eps_<<std::endl;
-  // Init and solve for weights
-  calculateWeights(F_vec); 	
+  calculateWeights(F_vec); 
+  delete b_map;	
 }
 
 //_____________________________________________________________________________
@@ -86,6 +61,9 @@ RooSplineND::RooSplineND(const RooSplineND& other, const char *name) :
     vars_.add(*rIt);
   }
 
+  w_mean = other.w_mean;
+  w_rms  = other.w_rms;
+
   // STL copy constructors
   w_    = other.w_;
   v_map = other.v_map; 
@@ -95,7 +73,7 @@ RooSplineND::RooSplineND(const RooSplineND& other, const char *name) :
 //_____________________________________________________________________________
 // Clone Constructor
 RooSplineND::RooSplineND(const char *name, const char *title, const RooListProxy &vars, 
- int ndim, int M, double eps, std::vector<double> &w, std::map<int,std::vector<double> > &map, std::map<int,std::pair<double,double> > &rmap) :
+ int ndim, int M, double eps, std::vector<double> &w, std::map<int,std::vector<double> > &map, std::map<int,std::pair<double,double> > &rmap,double wmean, double wrms) :
  RooAbsReal(name, title),vars_("vars",this,RooListProxy()) 
 {
 
@@ -113,12 +91,9 @@ RooSplineND::RooSplineND(const char *name, const char *title, const RooListProxy
   w_    = w;
   v_map = map;
   r_map = rmap;
-  /*
-  std::map<int,std::vector<double> >::const_iterator vit = map.begin();
-  for (;vit!=map.end();vit++){
-   v_map.insert(*vit);
-  }
-  */
+	
+  w_rms  = wrms;
+  w_mean = wrms;
   
 }
 
@@ -126,7 +101,7 @@ RooSplineND::RooSplineND(const char *name, const char *title, const RooListProxy
 TObject *RooSplineND::clone(const char *newname) const 
 {
     return new RooSplineND(newname, this->GetTitle(), 
-	vars_,ndim_,M_,eps_,w_,v_map,r_map);
+	vars_,ndim_,M_,eps_,w_,v_map,r_map,w_mean,w_rms);
 }
 //_____________________________________________________________________________
 RooSplineND::~RooSplineND() 
@@ -139,6 +114,7 @@ TGraph * RooSplineND::getGraph(const char *xvar, double step){
   gr->SetLineWidth(2);
   RooRealVar* v = (RooRealVar*) vars_.find(xvar);
   gr->SetTitle(v->GetTitle());
+  gr->GetXaxis()->SetTitle(xvar);
   double vorig = v->getVal();
   int cp=0;
 
@@ -154,49 +130,44 @@ TGraph * RooSplineND::getGraph(const char *xvar, double step){
 //_____________________________________________________________________________
 void RooSplineND::calculateWeights(std::vector<double> &f){
 
+  if (M_==0) {
+	w_mean = 0;
+	w_rms = 1;
+	return;
+  }
   // Solve system of Linear equations for weights vector 
   TMatrixTSym<double> fMatrix(M_);
-  //TMatrixF fMatrix(M_,M_);
- 
   // Fill the Matrix
   for (int i=0;i<M_;i++){
     fMatrix(i,i)=1.;
     for (int j=i+1;j<M_;j++){
         double d2  = getDistSquare(i,j);
 	double rad = radialFunc(d2,eps_);
-	//std::cout << "Distance between " << i << " and " << j << " = " << TMath::Sqrt(d2) <<std::endl;
-        fMatrix(i,j) = (double) rad;
-	fMatrix(j,i) = (double) rad; // it is symmetric	
+        fMatrix(i,j) =  rad;
+	fMatrix(j,i) =  rad; // it is symmetric	
     }
   }
 
-  std::cout << "RooSplineND -- Solving for Weights" << std::endl;
   TVectorD weights(M_);
   for (int i=0;i<M_;i++){
     weights[i]=(double)f[i];
   }
 
-  TDecompBK decomp(fMatrix);
-  //decomp.Print();
-  // Invert (not sure how stable this is though!)
+  TDecompQRH decomp(fMatrix);
+  std::cout << "RooSplineND -- Solving for Weights" << std::endl;
+  
   decomp.Solve(weights); // Solution now in weights
-  //fMatrix.Invert();
   std::cout << "RooSplineND -- ........ Done" << std::endl;
+
+  w_mean = 0.;
   for (int i=0;i<M_;i++){
-    w_.push_back((double)weights[i]);
+    double tw = weights[i];
+    w_.push_back(tw);
+    w_mean+=(1./M_)*TMath::Abs(tw);
+    w_rms+=(1./M_)*(tw*tw);
   }
-  // Store weights
-  /*
-  for (int i=0;i<M_;i++){
-    double wi = 0.;
-    for (int j=0;j<M_;j++){
-  //    std::cout << "i,j " << i << ", " << j << ", " << fMatrix(i,j) <<std::endl;
-      wi+=fMatrix(i,j)*f[j];
-    }
-    //std::cout << "Weights (calc) = " << i << " " << wi <<std::endl;
-    w_.push_back(wi);
-  }
-  */
+  w_rms -= (w_mean*w_mean);
+  w_rms = TMath::Sqrt(w_rms);
 }
 //_____________________________________________________________________________
 double RooSplineND::getDistSquare(int i, int j){
@@ -227,20 +198,19 @@ double RooSplineND::getDistFromSquare(int i) const{
 //_____________________________________________________________________________
 double RooSplineND::radialFunc(double d2, double eps) const{
   double expo = (d2/(eps*eps));
-  double retval = TMath::Exp(-1*expo);
-  //double retval = (eps*eps*eps*eps)/(d2*d2);
-//  if (retval < 1e-3) retval=0.;
+  double retval = 1./(1+(TMath::Power(expo,1.5)));
   return retval;
 }
 //_____________________________________________________________________________
 Double_t RooSplineND::evaluate() const {
  double ret = 0;
  for (int i=0;i<M_;i++){
- //  std::cout << "Weights (eval) = " << i << " " << w_[i] <<std::endl;
  //  std::cout << "EVAL == "<< i << " " << w_[i] << " " << getDistFromSquare(i) << std::endl;
-   if (w_[i]==0) continue;
-   ret+=(w_[i]*radialFunc(getDistFromSquare(i),eps_));
+   double w = w_[i];
+   if (w==0) continue;
+   ret+=((w/w_mean)*radialFunc(getDistFromSquare(i),eps_));
  }
+ ret*=w_mean;
  return ret;
 }
 //_____________________________________________________________________________

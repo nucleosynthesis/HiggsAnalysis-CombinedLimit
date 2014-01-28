@@ -6,38 +6,61 @@
 #include <RooListProxy.h>
 #include "TMath.h"
 #include "TMatrixTSym.h"
+#include "TMatrixTSparse.h"
 #include "TMatrix.h"
 #include "TMatrixF.h"
 #include "TMatrixD.h"
 #include "TDecompSVD.h"
-#include "TDecompBK.h"
-#include "TVectorD.h"
+#include "TDecompChol.h"
 #include "TDecompLU.h"
+#include "TDecompBK.h"
+#include "TDecompQRH.h"
+#include "TDecompSparse.h"
+#include "TVectorD.h"
 #include "TTree.h"
+#include "TAxis.h"
 #include "TGraph.h"
 #include "RooRealVar.h"
 
 #include <map>
 #include <vector>
  
-//_________________________________________________
-/*
+/**********************************************************************
+Original Author -- Nicholas Wardle
+
 BEGIN_HTML
 <p>
-RooSplineND is helper class for producing a smooth function 
-(F:N->1) given (potentially sparse) samplings in the form of a TTree
+Use of radial basis functions for interpolation 
+between points in multidimensional space.
+
+Produces N ->1 function from TTree
+
+Branch to be considered as F(x) should be passed in fName, 
+otherwise it is assumed to be called, "f"
+
+TODO : 
+1) Add additional Radial basis function to choose from (via enums?)
+
+2) Make use of multiple trees in root file to produce N->M mapping 
+it should be possible to keep the decomposition once produced to solve 
+for different f-vectors
+
+3) Make the decomposition a persistent member. Can be used to apply to 
+different functions after decomposition is performed.
+
+4) Any better linear algebra packages from / rather than ROOT
+
 </p>
 END_HTML
-*/
-//
+************************************************************************/
 
 class RooSplineND : public RooAbsReal {
 
    public:
-      RooSplineND() : ndim_(0),M_(0),eps_(1.) {}
-      RooSplineND(const char *name, const char *title, RooArgList &vars, TTree *tree, const char* fName="f", double eps=1. ) ;
+      RooSplineND() : ndim_(0),M_(0),eps_(3.) {}
+      RooSplineND(const char *name, const char *title, RooArgList &vars, TTree *tree, const char* fName="f", double eps=3. ) ;
       RooSplineND(const RooSplineND& other, const char *name) ; 
-      RooSplineND(const char *name, const char *title, const RooListProxy &vars, int ndim, int M, double eps, std::vector<double> &w, std::map<int,std::vector<double> > &map, std::map<int,std::pair<double,double> > & ) ;
+      RooSplineND(const char *name, const char *title, const RooListProxy &vars, int ndim, int M, double eps, std::vector<double> &w, std::map<int,std::vector<double> > &map, std::map<int,std::pair<double,double> > & ,double,double) ;
       ~RooSplineND() ;
 
       TObject * clone(const char *newname) const ;
@@ -58,6 +81,8 @@ class RooSplineND : public RooAbsReal {
 	int M_;
 	double eps_;
   	double axis_pts_;
+	
+	double w_mean, w_rms;
 
 	void calculateWeights(std::vector<double> &);
 	double getDistSquare(int i, int j);
@@ -65,7 +90,7 @@ class RooSplineND : public RooAbsReal {
 	double radialFunc(double d2, double eps) const;
 	
 
-  ClassDef(RooSplineND,1) // MultiDim interpolations
+  ClassDef(RooSplineND,1) 
 };
 
 #endif
