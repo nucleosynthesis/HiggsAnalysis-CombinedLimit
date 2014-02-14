@@ -36,6 +36,7 @@ protected:
   static RooArgList                poiList_; 
   static unsigned int              nOtherFloatingPoi_; // keep a count of other POIs that we're ignoring, for proper chisquare normalization
   static float                     deltaNLL_;
+	static double										 absNLL_;
 
   // options    
   static unsigned int points_, firstPoint_, lastPoint_;
