@@ -40,6 +40,8 @@ CascadeMinimizer::CascadeMinimizer(RooAbsReal &nll, Mode mode, RooRealVar *poi, 
 
 bool CascadeMinimizer::improve(int verbose, bool cascade) 
 {
+
+
     minimizer_->setPrintLevel(verbose-1);
    
     minimizer_->setStrategy(strategy_);
@@ -384,6 +386,11 @@ bool CascadeMinimizer::multipleMinimize(const RooArgSet &reallyCleanParameters, 
         trivialMinimize(nll_, *poi_, 200);
       }
 
+      // Always re-create minimizer ? // --------------------------------------------------------------------
+      minimizer_.reset(new RooMinimizerOpt(nll_));
+      cacheutils::CachingSimNLL *simnll = setZeroPoint_ ? dynamic_cast<cacheutils::CachingSimNLL *>(&nll_) : 0;
+      if (simnll) simnll->setZeroPoint();
+      // -----------------------------------------------------------------------------------------------------
       ret =  improve(verbose, cascade);
 
       fitCounter++;

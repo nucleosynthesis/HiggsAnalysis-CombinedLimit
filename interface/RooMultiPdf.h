@@ -63,6 +63,10 @@ arg8=RooCmdArg::none());
   int getNumPdfs() const {return nPdfs;};
   void setCorrectionFactor(PenatlyScheme penal);
   int getCurrentIndex() const ;
+  RooArgSet *getCurrentParameterSet(RooAbsData &) const ;
+  RooArgSet *getCurrentParameterSet(RooAbsData *) const ;
+  RooArgSet *getCurrentParameterSet(RooArgSet &) const ;
+  RooArgSet *getCurrentParameterSet(RooArgSet *) const ;
   RooAbsPdf *getPdf(int index) const ;
   virtual Double_t getValV(const RooArgSet* nset) const ;
   /// needed since otherwise printValue calls evaluate(), which is taboo

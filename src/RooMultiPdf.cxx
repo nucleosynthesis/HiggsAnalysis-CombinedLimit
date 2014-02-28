@@ -84,6 +84,29 @@ double RooMultiPdf::getCorrection() const {
   return cFactor*val;  //PVAL correction
 }
 //_____________________________________________________________________________
+// Note, dont overload getParameters as this could cause lots fo problems
+// when building nll
+RooAbsPdf* RooMultiPdf::getParametrs(RooAbsData &data) const { 
+
+  RooAbsPdf *cPdf = ((RooAbsPdf*)c.at(x)); 
+  return cPdf->getParameters(data); 
+}
+RooAbsPdf* RooMultiPdf::getParametrs(RooAbsData *data) const { 
+
+  RooAbsPdf *cPdf = ((RooAbsPdf*)c.at(x)); 
+  return cPdf->getParameters(data); 
+}
+RooAbsPdf* RooMultiPdf::getParametrs(RooArgSet &set) const { 
+
+  RooAbsPdf *cPdf = ((RooAbsPdf*)c.at(x)); 
+  return cPdf->getParameters(set); 
+}
+RooAbsPdf* RooMultiPdf::getParametrs(RooArgSet *depList) const { 
+
+  RooAbsPdf *cPdf = ((RooAbsPdf*)c.at(x)); 
+  return cPdf->getParameters(depList); 
+}
+//_____________________________________________________________________________
 RooAbsPdf* RooMultiPdf::getCurrentPdf() const {
 
   RooAbsPdf *cPdf = ((RooAbsPdf*)c.at(x)); 
