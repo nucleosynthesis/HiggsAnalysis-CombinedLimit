@@ -42,9 +42,6 @@ protected:
   static ProfilingMode profileMode_;
   RooArgSet parametersToFreeze_;
 
-  enum FloatingMode { FixNuisance, FloatNuisance };
-  static std::vector<std::pair<std::string,FloatingMode> > profileDetails_;
-
   static bool  saveNLL_, keepFailures_, protectUnbinnedChannels_;
   static float nllValue_;
   std::auto_ptr<RooAbsReal> nll;
