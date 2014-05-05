@@ -107,6 +107,7 @@ class ModelBuilder(ModelBuilderBase):
                     groupsFor[nuisanceName].append(groupName)
                 else:
                     groupsFor[nuisanceName] = [ groupName ]
+
         #print self.DC.groups
         #print groupsFor
         for cpar in self.DC.discretes: self.addDiscrete(cpar)
@@ -251,6 +252,14 @@ class ModelBuilder(ModelBuilderBase):
             self.doSet("nuisances", ",".join(["%s"    % n for (n,nf,p,a,e) in self.DC.systs]))
             self.doObj("nuisancePdf", "PROD", ",".join(["%s_Pdf" % n for (n,nf,p,a,e) in self.DC.systs]))
             self.doSet("globalObservables", ",".join(globalobs))
+	
+        for groupName,nuisanceNames in self.DC.groups.iteritems():
+	    nuisanceargset = ROOT.RooArgSet()
+            for nuisanceName in nuisanceNames:
+		nuisanceargset.add(self.out.var(nuisanceName))
+	    nuisanceargset.Print()
+	    self.out.defineSet("group_%s"%groupName,nuisanceargset)
+
     def doExpectedEvents(self):
         self.doComment(" --- Expected events in each bin, for each process ----")
         for b in self.DC.bins:
