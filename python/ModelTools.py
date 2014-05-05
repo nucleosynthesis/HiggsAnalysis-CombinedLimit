@@ -277,7 +277,6 @@ class ModelBuilder(ModelBuilderBase):
 	    nuisanceargset = ROOT.RooArgSet()
             for nuisanceName in nuisanceNames:
 		nuisanceargset.add(self.out.var(nuisanceName))
-	    nuisanceargset.Print()
 	    self.out.defineSet("group_%s"%groupName,nuisanceargset)
 
     def doExpectedEvents(self):
