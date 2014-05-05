@@ -221,7 +221,8 @@ for (pname, pargs) in paramSysts.items():
 
 for pname in flatParamNuisances.iterkeys(): 
     print "%-12s  flatParam" % pname
-
+for dname in discreteNuisances.iterkeys(): 
+     print "%-12s  discrete" % dname
 for groupName,nuisanceNames in groups.iteritems():
     nuisances = ' '.join(nuisanceNames)
     print '%(groupName)s group = %(nuisances)s' % locals()

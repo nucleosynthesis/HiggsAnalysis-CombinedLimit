@@ -121,8 +121,7 @@ bool MultiDimFit::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooS
         }
         if (algo_ != None) Combine::commitPoint(/*expected=*/false, /*quantile=*/1.); // otherwise we get it multiple times
     }
-
-    //TODO setconstant of fixed parameters (called frozen from fitter algo base)
+   
 
     std::auto_ptr<RooAbsReal> nll;
     if (algo_ != None && algo_ != Singles) {
@@ -153,8 +152,6 @@ bool MultiDimFit::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooS
         case Contour2D: doContour2D(*nll); break;
         case Stitch2D: doStitch2D(*nll); break;
     }
-
-    //TODO unsetconstant of fixed parameters (called frozen from fitter algo base)
     
     return true;
 }
