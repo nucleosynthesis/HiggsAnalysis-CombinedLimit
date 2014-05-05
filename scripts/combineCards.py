@@ -33,8 +33,7 @@ from HiggsAnalysis.CombinedLimit.DatacardParser import *
 obsline = []; obskeyline = [] ;
 keyline = []; expline = []; systlines = {}
 signals = []; backgrounds = []; shapeLines = []
-paramSysts = {}; flatParamNuisances = {}
-groups = {}
+paramSysts = {}; flatParamNuisances = {}; discreteNuisances = {}
 cmax = 5 # column width
 if not args:
     raise RuntimeError, "No input datacards specified."
@@ -70,7 +69,7 @@ for ich,fname in enumerate(args):
         systeffect = {}
         if pdf == "param":
             if paramSysts.has_key(lsyst):
-               if paramSysts[lsyst] != pdfargs: raise RuntimeError, "Parameter uncertainty %s mismatch between cards." % lsyst
+               if paramSysts[lsyst] != pdfargs: raise RuntimeError, "Parameter uncerainty %s mismatch between cards." % lsyst
             else:
                 paramSysts[lsyst] = pdfargs
             continue
