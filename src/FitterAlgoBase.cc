@@ -199,6 +199,26 @@ bool FitterAlgoBase::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats:
   ProfileLikelihood::MinimizerSentry minimizerConfig(minimizerAlgo_, minimizerTolerance_);
   CloseCoutSentry sentry(verbose < 0);
 
+  //AD<<
+  // nuisances + pois = mc_s -> Get pdf -> get parameters(data)
+  RooArgSet emptySet;
+  RooArgSet *parameters = mc_s->GetPdf()->getParameters(emptySet);
+  parameters->Print("tv");
+  RooArgSet constants;
+  // remove constant (were frozen or are real constants)
+  std::auto_ptr<TIterator> iter(parameters->createIterator());
+  for (RooAbsArg *a = (RooAbsArg *) iter->Next(); a != 0; a = (RooAbsArg *) iter->Next()) {
+      RooRealVar *v = dynamic_cast<RooRealVar *>(a);
+      //v->Print("tv");
+      if (v->isConstant()){
+    	  constants.add(*a);
+      }
+  }
+  constants.Print("tv");
+
+
+  // figure out the ones to fix (perhaps cache it) and set parametersToFreeze_
+
   static bool shouldCreateNLLBranch = saveNLL_;
   if (shouldCreateNLLBranch) { Combine::addBranch("nll", &nllValue_, "nll/F"); shouldCreateNLLBranch = false; }
 
@@ -298,7 +318,7 @@ RooFitResult *FitterAlgoBase::doFit(RooAbsPdf &pdf, RooAbsData &data, const RooA
     //If I have frozen some parameters, then the easiest thing is to just repeat the fit once again
 
     if (frozenParameters.getSize()) {
-        utils::setAllConstant(frozenParameters, true);
+        utils::setAllConstant(frozenParameters, true); //AD<<
         if (verbose > 1) {
             RooArgSet any(*allpars);
             RooStats::RemoveConstantParameters(&any);
@@ -307,7 +327,7 @@ RooFitResult *FitterAlgoBase::doFit(RooAbsPdf &pdf, RooAbsData &data, const RooA
             fprintf(sentry.trueStdOut(), "Parameters that will be floating are: %s.\n",sstr.str().c_str());
         }
         ret = doFit(pdf,data,rs,constrain,doHesse,ndim,reuseNLL,saveFitResult);
-        utils::setAllConstant(frozenParameters, false);
+        utils::setAllConstant(frozenParameters, false); //AD<<
         return ret;
     }
  
