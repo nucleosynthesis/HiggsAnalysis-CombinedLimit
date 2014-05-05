@@ -144,6 +144,7 @@ for ich,fname in enumerate(args):
         for b in DC.bins:
             bout = label if singlebin else label+b
             if isVetoed(bout,options.channelVetos): continue
+	    if not isIncluded(bout,options.channelIncludes): continue
             obsline += [str(DC.obs[b])];
     #get the groups - keep nuisances in a set so that they are never repetitions
     for groupName,nuisanceNames in DC.groups.iteritems():
