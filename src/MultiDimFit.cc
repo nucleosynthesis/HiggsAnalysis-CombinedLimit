@@ -743,53 +743,181 @@ void MultiDimFit::doContour2D(RooAbsReal &nll)
 
 void MultiDimFit::doStitch2D(RooAbsReal &nll)
 {
-    if (poi_.size() != 2) throw std::logic_error("Contour2D works only in 2 dimensions");
-    //RooRealVar *xv = poiVars_[0]; double x0 = poiVals_[0]; float &x = poiVals_[0];
-    //RooRealVar *yv = poiVars_[1]; double y0 = poiVals_[1]; float &y = poiVals_[1];
+  if (poi_.size() != 2) throw std::logic_error("Contour2D works only in 2 dimensions");
+  unsigned int n = poi_.size();
+  unsigned int sectors = 4;
+  bool ok;
+  double nll0 = nll.getVal();
 
-    //double threshold = nll.getVal() + 0.5*ROOT::Math::chisquared_quantile_c(1-cl,2+nOtherFloatingPoi_);
-    //if (verbose>0) std::cout << "Best fit point is for " << xv->GetName() << ", "  << yv->GetName() << " =  " << x0 << ", " << y0 << std::endl;
+  std::vector<double> p0(n), pmin(n), pmax(n);
+  for (unsigned int i = 0; i < n; ++i) {
+      p0[i] = poiVars_[i]->getVal();
+      pmin[i] = poiVars_[i]->getMin();
+      pmax[i] = poiVars_[i]->getMax();
+      poiVars_[i]->setConstant(true);
+  }
 
-    // make a box
-    //doBox(nll, cl, "box");
-    //double xMin = xv->getMin("box"), xMax = xv->getMax("box");
-    //double yMin = yv->getMin("box"), yMax = yv->getMax("box");
+  CascadeMinimizer minim(nll, CascadeMinimizer::Constrained);
+  minim.setStrategy(minimizerStrategy_);
+  std::auto_ptr<RooArgSet> params(nll.getParameters((const RooArgSet *)0));
 
-//    verbose--; // reduce verbosity to avoid messages from findCrossing
-//    // ===== Get relative min/max of x for several fixed y values =====
-//    yv->setConstant(true);
-//    for (unsigned int j = 0; j <= points_; ++j) {
-//        if (j < firstPoint_) continue;
-//        if (j > lastPoint_)  break;
-//        // take points uniformly spaced in polar angle in the case of a perfect circle
-//        double yc = 0.5*(yMax + yMin), yr = 0.5*(yMax - yMin);
-//        yv->setVal( yc + yr * std::cos(j*M_PI/double(points_)) );
-//        // ===== Get the best fit x (could also do without profiling??) =====
-//        xv->setConstant(false);  xv->setVal(x0);
-//        CascadeMinimizer minimXI(nll, CascadeMinimizer::Unconstrained, xv);
-//        minimXI.setStrategy(minimizerStrategy_);
-//        {
-//            CloseCoutSentry sentry(verbose < 3);
-//            minimXI.minimize(verbose-1);
-//        }
-//        double xc = xv->getVal(); xv->setConstant(true);
-//        if (verbose>-1) std::cout << "Best fit " << xv->GetName() << " for  " << yv->GetName() << " = " << yv->getVal() << " is at " << xc << std::endl;
-//        // ===== Then get the range =====
-//        CascadeMinimizer minim(nll, CascadeMinimizer::Constrained);
-//        double xup = findCrossing(minim, nll, *xv, threshold, xc, xMax);
-//        if (!std::isnan(xup)) {
-//            x = xup; y = yv->getVal(); Combine::commitPoint(true, /*quantile=*/1-cl);
-//            if (verbose>-1) std::cout << "Minimum of " << xv->GetName() << " at " << cl << " CL for " << yv->GetName() << " = " << y << " is " << x << std::endl;
-//        }
-//
-//        double xdn = findCrossing(minim, nll, *xv, threshold, xc, xMin);
-//        if (!std::isnan(xdn)) {
-//            x = xdn; y = yv->getVal(); Combine::commitPoint(true, /*quantile=*/1-cl);
-//            if (verbose>-1) std::cout << "Maximum of " << xv->GetName() << " at " << cl << " CL for " << yv->GetName() << " = " << y << " is " << x << std::endl;
-//        }
-//    }
-//
-//    verbose++; // restore verbosity
+
+  const double pi = 3.14159;
+
+  double set_level = contour_; 
+  double step= pow((pmax[0]-pmin[0])*(pmax[1]-pmin[1])/double(points_),0.5);
+  const double x0 = poiVars_[0]->getVal(), y0 = poiVars_[1]->getVal(); 
+  for(unsigned int u=0; u<sectors; u++){
+      double x = x0, y = y0;
+      std::cout<<"Job#"<<u+1<<"\n"<<"Starting from ("<<x0<<","<<y0<<"), moving outwards to touch contour."<<std::endl;	
+	  
+      const double theta_min = u*2*pi/sectors, theta_max = (u+1)*2*pi/sectors;
+      
+      /*Finding the edge on the line where the line intersects the bundary*/
+      double r=step, rmax, rmin=r, l1=-set_level, l2;
+      while(r*cos(theta_min)>pmin[0] && r*sin(theta_min)>pmin[1] && r*cos(theta_min)<pmax[0] && r*sin(theta_min)<pmax[1]) r+= step;
+      rmax=r;
+	  
+      x = x0 + rmax*cos(theta_min);
+      y = y0 + rmax*sin(theta_min);
+	  
+      poiVals_[0] = x; poiVals_[1] = y;
+      poiVars_[0]->setVal(x); poiVars_[1]->setVal(y);
+      ok = fastScan_ || (hasMaxDeltaNLLForProf_ && (nll.getVal() - nll0) > maxDeltaNLLForProf_) ? true :minim.minimize(verbose-1);
+      if (ok) {
+	  deltaNLL_ = nll.getVal() - nll0;
+	  double qN = 2*(deltaNLL_);
+	  double prob = ROOT::Math::chisquared_cdf_c(qN, n+nOtherFloatingPoi_);
+	  for(unsigned int j=0; j<specifiedNuis_.size(); j++){
+	      specifiedVals_[j]=specifiedVars_[j]->getVal();
+	  }
+	  Combine::commitPoint(true,prob);
+      }	
+      l2 = deltaNLL_-set_level;
+      if(l2<0) {
+	  std::cout<<"Please change the range so that the contour is enclosed completely by it.\n";
+      }
+      if(l1>0) {
+	 std::cout<<"Only positive values for contours accepted.\n";
+      } 
+      /*Starting bisection method to find the point on the contour*/
+      unsigned int enough = 0;	
+      while((rmax-rmin)>step){
+	  x = x0 + (rmax+rmin)*cos(theta_min)/2;
+	  y = y0 + (rmax+rmin)*sin(theta_min)/2;
+	  
+	  poiVals_[0] = x; poiVals_[1] = y;
+	  poiVars_[0]->setVal(x); poiVars_[1]->setVal(y);
+	  ok = fastScan_ || (hasMaxDeltaNLLForProf_ && (nll.getVal() - nll0) > maxDeltaNLLForProf_) ? true :minim.minimize(verbose-1);
+	  if (ok) {
+	      deltaNLL_ = nll.getVal() - nll0;
+	      double qN = 2*(deltaNLL_);
+	      double prob = ROOT::Math::chisquared_cdf_c(qN, n+nOtherFloatingPoi_);
+	      for(unsigned int j=0; j<specifiedNuis_.size(); j++){
+		  specifiedVals_[j]=specifiedVars_[j]->getVal();
+	      }
+	      Combine::commitPoint(true,prob);
+	  }
+	  
+	  if((deltaNLL_-set_level) < 0){
+	      rmin = (rmax+rmin)/2;
+	      l1 = deltaNLL_ - set_level;
+	  }
+	  else{
+	      rmax = (rmax+rmin)/2;
+	      l2 = deltaNLL_ - set_level;
+	  }
+	 
+
+	  enough++;
+	  if(enough>points_/sectors) {
+	      std::cout<<"Bisection method to reach the contour starting from the interior point did not converge.\n";
+	      break;
+	  }
+     }
+     const double x_start = x0 + (rmax+rmin)*cos(theta_min)/2, y_start = y0 + (rmax+rmin)*sin(theta_min)/2;
+
+     int cost1=0;
+     double theta=-99999, theta_old = theta;
+     double l=2.828427*pi*(rmax+rmin)/(points_);
+
+     double x1, y1, z1, x2, y2, z2, X, Y;
+     double alpha=pi/4;		
+
+     std::cout<<"Touched countour at ("<<x_start<<","<<y_start<<")"<<std::endl;
+     std::cout<<"Probe length being used: "<<l<<". Decrease granularity to decrease probe length if this is too small."<<std::endl;
+
+     /* Starting stitching */
+     x = x_start;
+     y = y_start;
+     while(theta<theta_max){
+	  theta = atan2(y-y0,x-x0);
+	  if(theta<0) theta += 2*pi;
+	  //std::cout<<theta<<std::endl;
+	  x1 = x - l*cos(theta- alpha);
+	  y1 = y - l*sin(theta-alpha);
+	  poiVals_[0] = x1; poiVals_[1] = y1;
+	  poiVars_[0]->setVal(x1); poiVars_[1]->setVal(y1);
+	  
+	  ok = fastScan_ || (hasMaxDeltaNLLForProf_ && (nll.getVal() - nll0) > maxDeltaNLLForProf_) ? true :minim.minimize(verbose-1);
+	  if (ok) {
+	     cost1++;
+	     deltaNLL_ = nll.getVal() - nll0;
+	     double qN = 2*(deltaNLL_);
+	     double prob = ROOT::Math::chisquared_cdf_c(qN, n+nOtherFloatingPoi_);
+	     for(unsigned int j=0; j<specifiedNuis_.size(); j++){
+		  specifiedVals_[j]=specifiedVars_[j]->getVal();
+	     }
+	     Combine::commitPoint(true,prob);
+	  }
+	  
+	  z1 = deltaNLL_-set_level;
+
+
+	  x2 = x + l*cos(theta+alpha);
+	  y2 = y + l*sin(theta+ alpha);
+	  poiVals_[0] = x2; poiVals_[1] = y2;
+	  poiVars_[0]->setVal(x2); poiVars_[1]->setVal(y2);
+	  
+	  ok = fastScan_ || (hasMaxDeltaNLLForProf_ && (nll.getVal() - nll0) > maxDeltaNLLForProf_) ? true :minim.minimize(verbose-1);
+	  if (ok) {
+	     cost1++;
+	     deltaNLL_ = nll.getVal() - nll0;
+	     double qN = 2*(deltaNLL_);
+	     double prob = ROOT::Math::chisquared_cdf_c(qN, n+nOtherFloatingPoi_);
+	     for(unsigned int j=0; j<specifiedNuis_.size(); j++){
+		  specifiedVals_[j]=specifiedVars_[j]->getVal();
+	     }
+	     Combine::commitPoint(true,prob);
+	  }
+
+	  z2 = deltaNLL_- set_level;
+
+	  X = x1+(x2-x1)*z1/(z1-z2);
+	  Y = y1 +(y2-y1)*z1/(z1-z2);
+
+	  if(theta>theta_old){
+	     x = X;
+	     y = Y;
+	     poiVals_[0] = X; poiVals_[1] = Y;
+	     poiVars_[0]->setVal(X); poiVars_[1]->setVal(Y);
+		  
+	     deltaNLL_=set_level;
+	     double qN = 2*(deltaNLL_);
+	     double prob = ROOT::Math::chisquared_cdf_c(qN, n+nOtherFloatingPoi_);
+	     for(unsigned int j=0; j<specifiedNuis_.size(); j++){
+			  specifiedVals_[j]=specifiedVars_[j]->getVal();
+	      }
+	     Combine::commitPoint(true,prob);
+	  }
+
+	  
+	  else break;
+	  
+	  theta_old=theta;
+     }
+  std::cout<<"Points traced:"<<cost1<<std::endl;
+  }
 }
 
 
