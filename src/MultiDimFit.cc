@@ -496,6 +496,9 @@ void MultiDimFit::doGrid(RooAbsReal &nll)
           }
 	}
     } else if (n == 2) {
+       if (plotPower_>1 || plotPower_<1) doSmartScan(nll);
+       else { // Old style of running over regular grid
+        std::cout << "Oldy Stylee"<< std::endl;
         unsigned int sqrn = ceil(sqrt(double(points_)));
         unsigned int ipoint = 0, nprint = ceil(0.005*sqrn*sqrn);
         RooAbsReal::setEvalErrorLoggingMode(RooAbsReal::CountErrors);
@@ -599,7 +602,8 @@ void MultiDimFit::doGrid(RooAbsReal &nll)
                     }
                 }
             }
-        }
+	}
+      }
     
     } else { // Use smart scan for n>3 dimensions
       doSmartScan(nll);
