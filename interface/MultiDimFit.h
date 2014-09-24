@@ -24,7 +24,7 @@ public:
 protected:
   virtual bool runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::ModelConfig *mc_b, RooAbsData &data, double &limit, double &limitErr, const double *hint);
 
-  enum Algo { None, Singles, Cross, Grid, RandomPoints, Contour2D, Stitch2D, FixedPoint };
+  enum Algo { None, Singles, Cross, Grid, RandomPoints, Contour2D, Stitch2D, FixedPoint, SmartScan };
   static Algo algo_;
 
   enum GridType { G1x1, G3x3 };
@@ -45,6 +45,8 @@ protected:
   static bool hasMaxDeltaNLLForProf_;
   static bool loadedSnapshot_;
   static float maxDeltaNLLForProf_;
+  static float plotPower_;
+  static double contour_;
 
   static std::string saveSpecifiedFuncs_;
   static std::string saveSpecifiedNuis_;
@@ -67,6 +69,7 @@ protected:
   void doFixedPoint(RooWorkspace *w,RooAbsReal &nll) ;
   void doContour2D(RooAbsReal &nll) ;
   void doStitch2D(RooAbsReal &nll) ;
+  void doSmartScan(RooAbsReal &nll);
 
   // utilities
   /// for each RooRealVar, set a range 'box' from the PL profiling all other parameters
