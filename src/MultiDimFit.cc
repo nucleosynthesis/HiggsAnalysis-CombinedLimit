@@ -626,7 +626,7 @@ void MultiDimFit::doGrid(RooAbsReal &nll)
 	// Step through points
         std::vector<std::vector<int> >::iterator perm_it = permutations.begin();
 	int npermutations = permutations.size();
-    	for (;perm_it!=permutations.end(); perm_it++){
+    	for (;perm_it!=permutations.end(); perm_it++,ipoint++){
 
           if (ipoint < firstPoint_) continue;
           if (ipoint > lastPoint_)  break;
@@ -674,7 +674,6 @@ void MultiDimFit::doGrid(RooAbsReal &nll)
 		}
                Combine::commitPoint(true, /*quantile=*/prob);
           }
-	  ipoint++;	
 	} 
       }
     } 
@@ -1091,12 +1090,14 @@ void MultiDimFit::doSmartScan(RooAbsReal &nll){
 	  if(index>0)
 	  {
 		  if(plotPower_>1) x[j-1] = origin[j-1]+(pmax[j-1]-origin[j-1])*pow(index/double(points_right[j-1]),plotPower_);
+		  else if (plotPower_==1) x[j-1] = origin[j-1]+(pmax[j-1]-origin[j-1])*(index/double(points_right[j-1]));
 		  else x[j-1] = pmax[j-1]+(origin[j-1]-pmax[j-1])*pow(index/double(points_right[j-1]),plotPower_);
 	  }
 	  /*plotting points on the left of the minimum*/
 	  else if(index<0)
 	  {
 		  if(plotPower_>1) x[j-1] = origin[j-1]+(pmin[j-1]-origin[j-1])*pow(-index/double(points_left[j-1]),plotPower_);
+		  else if(plotPower_==1) x[j-1] = origin[j-1]+(pmin[j-1]-origin[j-1])*(-index/double(points_left[j-1]));
 		  else x[j-1] = pmin[j-1]+(origin[j-1]-pmin[j-1])*pow(-index/double(points_left[j-1]),plotPower_);
 	  }
 	  else 
