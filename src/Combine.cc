@@ -160,7 +160,7 @@ void Combine::applyOptions(const boost::program_options::variables_map &vm) {
   }
   bypassFrequentistFit_ = vm.count("bypassFrequentistFit");
   overrideSnapshotMass_ = vm.count("overrideSnapshotMass");
-  mass_ = vm["mass"].as<float>();
+  mass_ = double((vm["mass"]).as<double>());
   saveToys_ = vm.count("saveToys");
   validateModel_ = vm.count("validateModel");
   if (vm["method"].as<std::string>() == "MultiDimFit" || ( vm["method"].as<std::string>() == "MaxLikelihoodFit" && vm.count("justFit")) || vm["method"].as<std::string>() == "MarkovChainMC") {

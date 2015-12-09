@@ -59,7 +59,7 @@ protected:
   static bool uncapped_;
 
   static float signalForSignificance_;
-  static float mass_;
+  static double mass_;
 
   static std::string plot_;
 

@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
 
   string name;
   string datacard, dataset;
-  float iMass;
+  double iMass;
   string whichMethod, whichHintMethod;
   int runToys;
   int    seed;
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     ;
   combiner.ioOptions().add_options()
     ("name,n",     po::value<string>(&name)->default_value("Test"), "Name of the job, affects the name of the output tree")
-    ("mass,m",     po::value<float>(&iMass)->default_value(120.), "Higgs mass to store in the output tree")
+    ("mass,m",     po::value<double>(&iMass)->default_value(120.), "Higgs mass to store in the output tree")
     ("dataset,D",  po::value<string>(&dataset)->default_value("data_obs"), "Name of the dataset for observed limit")
     ("toysFile",   po::value<string>(&toysFile)->default_value(""), "Read toy mc or other intermediate results from this file")
     ;
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
   }
   RooRandom::randomGenerator()->SetSeed(seed); 
 
-  TString massName = TString::Format("mH%g.", iMass);
+  TString massName = TString::Format("mH%f.", iMass);
   TString toyName  = "";  if (runToys > 0 || seed != 123456 || vm.count("saveToys")) toyName  = TString::Format("%d.", seed);
   if (vm.count("expectedFromGrid") && !vm["expectedFromGrid"].defaulted()) toyName += TString::Format("quant%.3f.", vm["expectedFromGrid"].as<float>());
   if (vm.count("expected")         && !vm["expected"].defaulted())         toyName += TString::Format("quant%.3f.", vm["expected"].as<float>());

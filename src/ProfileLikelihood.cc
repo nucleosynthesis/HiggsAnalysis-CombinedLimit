@@ -43,7 +43,7 @@ std::string ProfileLikelihood::bfAlgo_ = "scale";
 bool        ProfileLikelihood::reportPVal_ = false;
 bool        ProfileLikelihood::uncapped_ = false;
 float       ProfileLikelihood::signalForSignificance_ = 0;
-float       ProfileLikelihood::mass_;
+double       ProfileLikelihood::mass_;
 std::string ProfileLikelihood::plot_ = "";
 
 ProfileLikelihood::ProfileLikelihood() :
@@ -79,7 +79,8 @@ void ProfileLikelihood::applyOptions(const boost::program_options::variables_map
     else useMinos_ = true;
     bruteForce_ = vm.count("bruteForce");
     reportPVal_ = vm.count("pvalue");
-    mass_ = vm["mass"].as<float>();
+    //mass_ = vm["mass"].as<float>();
+    mass_ = double((vm["mass"]).as<double>());
 }
 
 ProfileLikelihood::MinimizerSentry::MinimizerSentry(const std::string &minimizerAlgo, double tolerance) :
