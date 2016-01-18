@@ -707,6 +707,7 @@ RooAbsData * Asymptotic::asimovDataset(RooWorkspace *w, RooStats::ModelConfig *m
         utils::setAllConstant(gobs, true);
         gobs.snapshot(snapGlobalObsData);
     }
+    std::cout << " Passing bypasFreq? "<< bypassFrequentistFit_ << std::endl;
     // get asimov dataset and global observables
     RooAbsData *asimovData = (noFitAsimov_  ? asimovutils::asimovDatasetNominal(mc_s, 0.0, verbose) :
                                               asimovutils::asimovDatasetWithFit(mc_s, data, snapGlobalObsAsimov,!bypassFrequentistFit_, 0.0, verbose));

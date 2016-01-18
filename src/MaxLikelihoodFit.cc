@@ -490,10 +490,21 @@ void MaxLikelihoodFit::getNormalizations(RooAbsPdf *pdf, const RooArgSet &obs, R
     IT bg = snm.begin(), ed = snm.end(), pair; int i;
     for (pair = bg, i = 0; pair != ed; ++pair, ++i) {  
         vals[i] = pair->second.norm->getVal();
+//	std::cout << " Running Now On " << pair->first << std::endl;
         //out.addOwned(*(new RooConstVar(pair->first.c_str(), "", pair->second.norm->getVal())));
         if (fOut != 0 && saveShapes_ && pair->second.obs.getSize() == 1) {
             RooRealVar *x = (RooRealVar*)pair->second.obs.at(0);
-            TH1* hist = pair->second.pdf->createHistogram("", *x);
+	    TH1* hist;
+	    if (pair->second.pdf->isBinnedDistribution(*x)) {
+	    	std::cout << pair->second.pdf->GetName() << " is binned distribution "<< std::endl;
+	    	hist = pair->second.pdf->createHistogram("", *x,RooFit::IntrinsicBinning());
+	    }
+	    else { 
+	    	std::cout << pair->second.pdf->GetName() << " is NOT ? binned distribution "<< std::endl;
+	    	hist = pair->second.pdf->createHistogram("", *x);
+
+	    }
+
             hist->SetNameTitle(pair->second.process.c_str(), (pair->second.process+" in "+pair->second.channel).c_str());
             hist->Scale(vals[i] / hist->Integral("width"));
             hist->SetDirectory(shapesByChannel[pair->second.channel]);
@@ -506,6 +517,7 @@ void MaxLikelihoodFit::getNormalizations(RooAbsPdf *pdf, const RooArgSet &obs, R
             TH1 *&htot = totByCh[pair->second.channel];
             if (htot == 0) {
                     htot = (TH1*) hist->Clone();
+	    	//    std::cout << "Starting sum of total from " <<  htot->GetName() << std::endl;
                     htot->SetName("total");
 		    htot->SetTitle(Form("Total signal+background in %s", pair->second.channel.c_str()));
                     htot->SetDirectory(shapesByChannel[pair->second.channel]);
@@ -513,12 +525,20 @@ void MaxLikelihoodFit::getNormalizations(RooAbsPdf *pdf, const RooArgSet &obs, R
                     htot2->SetDirectory(0);
                     totByCh2[pair->second.channel] = htot2;
             } else {
+	    	    //std::cout << " Trying to add " << hist->GetName() << " to " << htot->GetName() << std::endl;
+		    //htot->Print("v");
+		    //hist->Print("v");
                     htot->Add(hist);
             }
             sig[i] = pair->second.signal;
             TH1 *&hpart = (sig[i] ? sigByCh : bkgByCh)[pair->second.channel];
             if (hpart == 0) {
                     hpart = (TH1*) hist->Clone();
+	    //	    std::cout << "Starting sum " << (sig[i] ? "total_signal" : "total_background") << " from " <<  hpart->GetName() << std::endl;
+		    hpart->Print();
+		    for (int B=1;B<=hpart->GetNbinsX()+2;B++) std::cout << hpart->GetBinLowEdge(B) <<  ",";
+		    std::cout << std::endl;
+
                     hpart->SetName((sig[i] ? "total_signal" : "total_background"));
 		    hpart->SetTitle(Form((sig[i] ? "Total signal in %s" : "Total background in %s"),pair->second.channel.c_str()));
                     hpart->SetDirectory(shapesByChannel[pair->second.channel]);
@@ -526,6 +546,15 @@ void MaxLikelihoodFit::getNormalizations(RooAbsPdf *pdf, const RooArgSet &obs, R
                     hpart2->SetDirectory(0);
                     (sig[i] ? sigByCh2 : bkgByCh2)[pair->second.channel] = hpart2;
             } else {
+	    //	    std::cout << " Trying to add " << hist->GetName() << " to " << hpart->GetName() << std::endl;
+	//	    hpart->Print("v");
+	//	    hist->Print("v");
+	//	    std::cout << "HPART = " << hpart->GetNbinsX() << ", " << hpart->GetXaxis()->GetXmin()<< ", " << hpart->GetXaxis()->GetXmax() << std::endl;
+		    for (int B=1;B<=hpart->GetNbinsX()+2;B++) std::cout << hpart->GetBinLowEdge(B) <<  ",";
+		    std::cout << std::endl;
+//		    std::cout << "HIST = " << hist->GetNbinsX() << ", " << hist->GetXaxis()->GetXmin()<< ", " << hist->GetXaxis()->GetXmax() << std::endl;
+		    for (int B=1;B<=hist->GetNbinsX()+2;B++) std::cout << hist->GetBinLowEdge(B) <<  ",";
+		    std::cout << std::endl;
                     hpart->Add(hist);
             }
             //}
