@@ -22,8 +22,8 @@
 #######################################################################
 
 # Boost
-BOOST = /cvmfs/cms.cern.ch/slc6_amd64_gcc491/external/boost/1.51.0-cms
-VDT   = /cvmfs/cms.cern.ch/slc6_amd64_gcc491/cms/vdt/v0.3.2-cms
+VDT  = /cvmfs/sft.cern.ch/lcg/releases/LCG_85swan3/vdt/0.3.6/x86_64-slc6-gcc49-opt/
+BOOST = /cvmfs/sft.cern.ch/lcg/releases/LCG_85swan3/Boost/1.61.0/x86_64-slc6-gcc49-opt/
 
 # Compiler and flags -----------------------------------------------------------
 CC = g++
@@ -32,10 +32,10 @@ ROOTCFLAGS = $(shell root-config --cflags)
 ROOTLIBS = $(shell root-config --libs --glibs)
 ROOTINC = $(shell root-config --incdir)
 
-CCFLAGS = -D STANDALONE $(ROOTCFLAGS) -I$(BOOST)/include -I$(VDT)/include -g -fPIC
+CCFLAGS = -D STANDALONE  -I$(VDT)/include $(ROOTCFLAGS) -I$(BOOST)/include/boost-1_61 -g -fPIC
 # CMSSW CXXFLAGS plus -Wno-unused-local-typedefs (otherwise we get a flood of messages from BOOST) plus -Wno-unused-function
 CCFLAGS += -O2 -pedantic -pthread -pipe -Wno-vla -Werror=overflow -Wstrict-overflow -std=c++0x -msse3 -ftree-vectorize -Wno-strict-overflow -Werror=array-bounds -Werror=format-contains-nul -Werror=type-limits -fvisibility-inlines-hidden -fno-math-errno --param vect-max-version-for-alias-checks=50 -fipa-pta -felide-constructors -fmessage-length=0 -ftemplate-depth-300 -Wall -Wno-non-template-friend -Wno-long-long -Wreturn-type -Wunused -Wparentheses -Wno-deprecated -Werror=return-type -Werror=missing-braces -Werror=unused-value -Werror=address -Werror=format -Werror=sign-compare -Werror=write-strings -Werror=delete-non-virtual-dtor -Werror=maybe-uninitialized -Werror=strict-aliasing -Werror=narrowing -Werror=uninitialized -Werror=unused-but-set-variable -Werror=reorder -Werror=unused-variable -Werror=conversion-null -Werror=switch -fdiagnostics-show-option -DBOOST_DISABLE_ASSERTS -Wno-unused-local-typedefs -Wno-unused-function
-LIBS = $(ROOTLIBS) -L$(BOOST)/lib -L$(VDT)/lib -l RooFit -lRooFitCore -l RooStats -l Minuit -l Foam -lHistFactory -lboost_filesystem -lboost_program_options -lboost_system -lvdt 
+LIBS = $(ROOTLIBS) -L$(VDT)/lib -L$(BOOST)/lib -l RooFit -lRooFitCore -l RooStats -l Minuit -l Foam -lHistFactory -lboost_filesystem-gcc49-mt-1_61 -lboost_program_options-gcc49-mt-1_61 -lboost_system-gcc49-mt-1_61 -lvdt  
 
 # Library name -----------------------------------------------------------------
 LIBNAME=HiggsAnalysisCombinedLimit
