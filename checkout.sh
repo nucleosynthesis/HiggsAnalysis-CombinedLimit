@@ -9,5 +9,3 @@ cd HiggsAnalysis/CombinedLimit
 git init 
 git remote add origin https://github.com/nucleosynthesis/HiggsAnalysis-CombinedLimit
 git pull origin combine_tutorial_SWAN
-source env_standalone_make.sh
-make
