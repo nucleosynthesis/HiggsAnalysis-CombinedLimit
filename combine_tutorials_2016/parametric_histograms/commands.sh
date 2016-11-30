@@ -6,6 +6,7 @@ text2workspace.py combined_card.txt --X-nuisance-function '.*' 'expr::lumisyst("
 
 # scale for different luminosities 
 
+exit
 
 combine all_scaled.root -M Asymptotic --noFitAsimov --setPhysicsModelParameters luminosity=1  --trackParameters luminosity -n allscaled_1
 
