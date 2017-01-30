@@ -23,8 +23,8 @@ parser.add_option("","--doublesided",action='store_true',default=False,help="If 
 
 import ROOT
 ROOT.gROOT.SetBatch(1)
-ROOT.gROOT.ProcessLine(".L $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit/test/plotting/hypoTestResultTree.cxx")
-ROOT.gROOT.ProcessLine(".L $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit/test/plotting/qmuPlot.cxx")
+ROOT.gROOT.ProcessLine(".L ../../test/plotting/hypoTestResultTree.cxx")
+ROOT.gROOT.ProcessLine(".L ../../test/plotting/qmuPlot.cxx")
 from ROOT import hypoTestResultTree
 from ROOT import qmuPlot
 
