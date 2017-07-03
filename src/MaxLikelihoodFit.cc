@@ -636,6 +636,7 @@ void MaxLikelihoodFit::getNormalizations(RooAbsPdf *pdf, const RooArgSet &obs, R
         for (IH h = sigByCh.begin(), eh = sigByCh.end(); h != eh; ++h) sigByCh1[h->first] = (TH1*) h->second->Clone();
         for (IH h = bkgByCh.begin(), eh = bkgByCh.end(); h != eh; ++h) bkgByCh1[h->first] = (TH1*) h->second->Clone();
         for (int t = 0; t < ntoys; ++t) {
+	    std::cout << std::endl;
             // zero out partial sums
             for (IH h = totByCh1.begin(), eh = totByCh1.end(); h != eh; ++h) h->second->Reset();
             for (IH h = sigByCh1.begin(), eh = sigByCh1.end(); h != eh; ++h) h->second->Reset();
@@ -667,6 +668,7 @@ void MaxLikelihoodFit::getNormalizations(RooAbsPdf *pdf, const RooArgSet &obs, R
 		    target->AddBinContent(b, std::pow(deltaBi, 2));
 		    int binX = b - 1;
 		    TString xLabel = Form("%s_%d",h->first.c_str(),binX);
+		    std::cout << Form("Bin %d=%g (B_{0}=%g) ",b,h->second->GetBinContent(b),reference->GetBinContent(b));
 		    for (int bj = 1;bj <= b; bj++) {
 			int binY = bj - 1;
 			TString yLabel = Form("%s_%d",h->first.c_str(),binY);
